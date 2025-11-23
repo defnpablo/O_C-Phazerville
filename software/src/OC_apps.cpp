@@ -70,6 +70,7 @@ namespace menu = OC::menu;
 #include "APP_NeuralNetwork.h"
 #include "APP_SCALEEDITOR.h"
 #include "APP_WAVEFORMEDITOR.h"
+#include "APP_TRIGSEQ64.h"
 #include "APP_PONGGAME.h"
 #include "APP_Backup.h"
 #include "APP_SETTINGS.h"
@@ -163,6 +164,7 @@ static constexpr OC::App available_apps[] = {
   #endif
   DECLARE_APP('S','C', "Scale Editor", SCALEEDITOR),
   DECLARE_APP('W','A', "Waveform Editor", WaveformEditor),
+  DECLARE_APP('T','6', "TrigSeq64", TrigSeq64),
   #ifdef ENABLE_APP_PONG
   DECLARE_APP('P','O', "Pong", PONGGAME),
   #endif
