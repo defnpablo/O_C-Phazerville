@@ -3,6 +3,6 @@
 
 TEST(TrigSeq64Test, ValueEqualsOne_ShouldFail)
 {
-  trigseq64::TrigSeq64 t;
-  EXPECT_EQ(1, t.value);
+  TrigSeq64 t;
+  EXPECT_EQ(1, t.selected_step);
 }
