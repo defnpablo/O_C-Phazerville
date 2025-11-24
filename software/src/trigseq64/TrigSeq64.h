@@ -101,6 +101,20 @@ public:
     steps_.flip(step_cursor_);
   }
 
+  void clear_page() {
+    uint8_t page_start = page_cursor_ * PAGE_LENGTH;
+    for (uint8_t i = 0; i < PAGE_LENGTH; ++i) {
+      steps_.reset(page_start + i);
+    }
+  }
+
+  void fill_page() {
+    uint8_t page_start = page_cursor_ * PAGE_LENGTH;
+    for (uint8_t i = 0; i < PAGE_LENGTH; ++i) {
+      steps_.set(page_start + i);
+    }
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_;
   uint8_t page_cursor_;

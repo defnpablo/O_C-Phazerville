@@ -384,3 +384,92 @@ TEST(TrigSeq64Test, ToggleStepCursor_MultipleTimes_Alternates)
   t.toggle_step_cursor();
   EXPECT_TRUE(t.steps()[20]);
 }
+
+// Page manipulation tests
+TEST(TrigSeq64Test, ClearPage_Page0_ClearsOnlyPage0)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+  steps.set(); // all bits true
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              0);
+
+  t.clear_page();
+  
+  for (int i = 0; i < 16; ++i) {
+    EXPECT_FALSE(t.steps()[i]) << "Step " << i << " in page 0 should be cleared";
+  }
+  for (int i = 16; i < 64; ++i) {
+    EXPECT_TRUE(t.steps()[i]) << "Step " << i << " outside page 0 should remain set";
+  }
+}
+
+TEST(TrigSeq64Test, ClearPage_Page2_ClearsOnlyPage2)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+  steps.set();
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              2);
+
+  t.clear_page();
+  
+  for (int i = 0; i < 32; ++i) {
+    EXPECT_TRUE(t.steps()[i]) << "Step " << i << " before page 2 should remain set";
+  }
+  for (int i = 32; i < 48; ++i) {
+    EXPECT_FALSE(t.steps()[i]) << "Step " << i << " in page 2 should be cleared";
+  }
+  for (int i = 48; i < 64; ++i) {
+    EXPECT_TRUE(t.steps()[i]) << "Step " << i << " after page 2 should remain set";
+  }
+}
+
+TEST(TrigSeq64Test, FillPage_Page1_FillsOnlyPage1)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps; // all false
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              1);
+
+  t.fill_page();
+  
+  for (int i = 0; i < 16; ++i) {
+    EXPECT_FALSE(t.steps()[i]) << "Step " << i << " before page 1 should remain clear";
+  }
+  for (int i = 16; i < 32; ++i) {
+    EXPECT_TRUE(t.steps()[i]) << "Step " << i << " in page 1 should be set";
+  }
+  for (int i = 32; i < 64; ++i) {
+    EXPECT_FALSE(t.steps()[i]) << "Step " << i << " after page 1 should remain clear";
+  }
+}
+
+TEST(TrigSeq64Test, FillPage_Page3_FillsOnlyPage3)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              3);
+
+  t.fill_page();
+  
+  for (int i = 0; i < 48; ++i) {
+    EXPECT_FALSE(t.steps()[i]) << "Step " << i << " before page 3 should remain clear";
+  }
+  for (int i = 48; i < 64; ++i) {
+    EXPECT_TRUE(t.steps()[i]) << "Step " << i << " in page 3 should be set";
+  }
+}
