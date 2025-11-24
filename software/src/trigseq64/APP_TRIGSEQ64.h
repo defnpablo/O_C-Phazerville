@@ -1,9 +1,11 @@
 #pragma once
 #include "HSApplication.h"
-class TrigSeq64 : public HSApplication, public SystemExclusiveHandler {
+#include "TrigSeq64.h"
+
+class TrigSeq64App : public HSApplication, public SystemExclusiveHandler {
 public:
     void Start() {
-      // initialize state here
+      sequencer = TrigSeq64();
     }
 
     void Resume() {
@@ -32,31 +34,47 @@ public:
     // Control handlers
     /////////////////////////////////////////////////////////////////
     void OnLeftButtonPress() {
+      sequencer.toggle_step_cursor();
     }
 
     void OnLeftButtonLongPress() {
+      sequencer.clear_page();
     }
 
     void OnRightButtonPress() {
+      sequencer.set_end_cursor_to_page_end();
     }
 
     void OnUpButtonPress() {
+      sequencer.advance_page();
     }
 
     void OnDownButtonPress() {
+      sequencer.retreat_page();
     }
 
     void OnDownButtonLongPress() {
+      sequencer.fill_page();
     }
 
     void OnLeftEncoderMove(int direction) {
+      if (direction > 0) {
+        sequencer.advance_step_cursor();
+      } else {
+        sequencer.retreat_step_cursor();
+      }
     }
 
     void OnRightEncoderMove(int direction) {
+      if (direction > 0) {
+        sequencer.advance_end_cursor();
+      } else {
+        sequencer.retreat_end_cursor();
+      }
     }
 
 private:
-    int8_t cursor;
+    TrigSeq64 sequencer;
 
     /* Example private screen-drawing method
     void DrawInterface() {
@@ -64,7 +82,7 @@ private:
     */
 };
 
-TrigSeq64 TrigSeq64_instance;
+TrigSeq64App TrigSeq64_instance;
 
 // App stubs
 void TrigSeq64_init() {
