@@ -9,6 +9,7 @@ public:
     }
 
     void Resume() {
+      LoadFromEEPROMStage();
     }
 
     void Suspend() {
@@ -221,10 +222,50 @@ void TrigSeq64_init() {
   TrigSeq64_instance.BaseStart();
 }
 
-// Not using O_C Storage
-size_t TrigSeq64_storageSize() {return 0;}
-size_t TrigSeq64_save(void *storage) {return 0;}
-size_t TrigSeq64_restore(const void *storage) {return 0;}
+// Storage: save sequencer state
+size_t TrigSeq64_storageSize() {
+    return sizeof(uint64_t) + 4 * sizeof(uint8_t);
+}
+
+size_t TrigSeq64_save(void *storage) {
+    uint8_t *data = static_cast<uint8_t*>(storage);
+    size_t offset = 0;
+    
+    // Save the 64-bit step pattern
+    uint64_t steps_value = TrigSeq64_instance.sequencer.steps().to_ullong();
+    memcpy(data + offset, &steps_value, sizeof(steps_value));
+    offset += sizeof(steps_value);
+    
+    // Save cursor positions
+    data[offset++] = TrigSeq64_instance.sequencer.page_cursor();
+    data[offset++] = TrigSeq64_instance.sequencer.step_cursor();
+    data[offset++] = TrigSeq64_instance.sequencer.playhead_cursor();
+    data[offset++] = TrigSeq64_instance.sequencer.end_cursor();
+    
+    return TrigSeq64_storageSize();
+}
+
+size_t TrigSeq64_restore(const void *storage) {
+    const uint8_t *data = static_cast<const uint8_t*>(storage);
+    size_t offset = 0;
+    
+    // Restore the 64-bit step pattern
+    uint64_t steps_value;
+    memcpy(&steps_value, data + offset, sizeof(steps_value));
+    offset += sizeof(steps_value);
+    std::bitset<TrigSeq64::MAX_STEPS> steps(steps_value);
+    
+    // Restore cursor positions
+    uint8_t page_cursor = data[offset++];
+    uint8_t step_cursor = data[offset++];
+    uint8_t playhead_cursor = data[offset++];
+    uint8_t end_cursor = data[offset++];
+    
+    // Reconstruct sequencer with saved state
+    TrigSeq64_instance.sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor);
+    
+    return TrigSeq64_storageSize();
+}
 
 void TrigSeq64_isr() {
   TrigSeq64_instance.BaseController();
