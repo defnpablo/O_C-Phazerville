@@ -207,33 +207,33 @@ private:
                     (circle_radius + 1) * 2, (circle_radius + 1) * 2);
         }
         
-        // Draw playhead indicator (triangle above or below based on row)
+        // Draw playhead indicator (triangle at circle edge)
         uint8_t playhead = sequencer.playhead_cursor();
         if (step_index == playhead) {
             if (is_top_row) {
-                // Triangle below for top row
-                int tri_y = y + circle_radius + 3;
+                // Triangle at top of circle for top row (pointing down)
+                int tri_y = y - circle_radius - 1;
                 gfxLine(x - 3, tri_y, x, tri_y + 3);
                 gfxLine(x + 3, tri_y, x, tri_y + 3);
                 gfxLine(x - 3, tri_y, x + 3, tri_y);
             } else {
-                // Triangle above for bottom row
-                int tri_y = y - circle_radius - 3;
+                // Triangle at bottom of circle for bottom row (pointing up)
+                int tri_y = y + circle_radius + 4;
                 gfxLine(x - 3, tri_y, x, tri_y - 3);
                 gfxLine(x + 3, tri_y, x, tri_y - 3);
                 gfxLine(x - 3, tri_y, x + 3, tri_y);
             }
         }
         
-        // Draw end cursor indicator (vertical line to the right, positioned by row)
+        // Draw end cursor indicator (vertical line to the right of circle)
         if (step_index == sequencer.end_cursor()) {
             int line_x = x + circle_radius + 2;
             if (is_top_row) {
-                // Line at bottom for top row
-                gfxLine(line_x, y + 2, line_x, y + circle_radius);
+                // Line extending down from bottom of circle for top row
+                gfxLine(line_x, y, line_x, y + circle_radius + 3);
             } else {
-                // Line at top for bottom row
-                gfxLine(line_x, y - circle_radius, line_x, y - 2);
+                // Line extending up from top of circle for bottom row
+                gfxLine(line_x, y - circle_radius - 3, line_x, y);
             }
         }
     }
@@ -248,17 +248,17 @@ private:
         // Get current page's step range
         uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
         
-        // Steps 0-7 draw at bottom (y=54), steps 8-15 at top (y=37)
+        // Steps 0-7 draw at top (y=37), steps 8-15 at bottom (y=54)
         for (int step = 0; step < 16; step++) {
             int step_index = page_start + step;
             int col = step % steps_per_row;
-            // For visual positioning: steps 0-7 are at bottom, steps 8-15 at top
-            bool is_visual_bottom = (step < steps_per_row);
+            // For visual positioning: steps 0-7 are at top, steps 8-15 at bottom
+            bool is_visual_top = (step < steps_per_row);
             
             int x = start_x + (col * step_spacing);
-            int y = is_visual_bottom ? row_y_bottom : row_y_top;
+            int y = is_visual_top ? row_y_top : row_y_bottom;
             
-            DrawStep(x, y, step_index, !is_visual_bottom);
+            DrawStep(x, y, step_index, is_visual_top);
         }
     }
 };
