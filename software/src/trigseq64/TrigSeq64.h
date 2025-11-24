@@ -35,13 +35,13 @@ public:
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
 
-  void reset() {
+  void reset_playhead() {
     playhead_cursor_ = 0;
   }
 
-  void advance_step() {
+  void advance_playhead() {
     if (playhead_cursor_ >= end_cursor_) {
-      reset();
+      reset_playhead();
     } else {
       ++playhead_cursor_;
     }

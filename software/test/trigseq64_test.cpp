@@ -24,7 +24,7 @@ TEST(TrigSeq64Test, Reset)
               15,
               1);
 
-  t.reset();
+  t.reset_playhead();
 
   EXPECT_EQ(0,  t.playhead_cursor());
   EXPECT_EQ(0,  t.step_cursor());
@@ -42,7 +42,7 @@ TEST(TrigSeq64Test, AdvanceStep_RegularNext)
               63,
               0);
 
-  t.advance_step();
+  t.advance_playhead();
   EXPECT_EQ(6, t.playhead_cursor());
 }
 
@@ -56,7 +56,7 @@ TEST(TrigSeq64Test, AdvanceStep_EndOfFirstPage_GoesToNextPage)
               63,
               0);
 
-  t.advance_step();
+  t.advance_playhead();
 
   EXPECT_EQ(16, t.playhead_cursor());
 }
@@ -71,7 +71,7 @@ TEST(TrigSeq64Test, AdvanceStep_EndOfLastPage_WrapsToZero)
               63,
               0);
 
-  t.advance_step();
+  t.advance_playhead();
 
   EXPECT_EQ(0, t.playhead_cursor());
 }
