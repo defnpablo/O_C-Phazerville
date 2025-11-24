@@ -18,10 +18,10 @@ public:
   {}
 
   TrigSeq64(const std::bitset<MAX_STEPS>& steps,
-            uint8_t page_cursor,
-            uint8_t step_cursor,
             uint8_t playhead_cursor,
-            uint8_t end_cursor)
+            uint8_t step_cursor,
+            uint8_t end_cursor,
+            uint8_t page_cursor)
   : steps_(steps)
   , page_cursor_(page_cursor)
   , step_cursor_(step_cursor)
