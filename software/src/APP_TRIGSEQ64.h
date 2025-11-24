@@ -16,12 +16,23 @@ public:
     }
 
     void Controller() {
-      // MAIN I/O LOGIC
+      // Clock input on trigger 1: check step and advance
+      if (Clock(0)) {
+        if (sequencer.is_playhead_step_on()) {
+          ClockOut(0);  // Send trigger on output A if step is on
+        }
+        sequencer.advance_playhead();
+      }
+
+      // Reset sequencer on trigger input 2
+      if (Clock(1)) {
+        sequencer.reset_playhead();
+      }
     }
 
     void View() {
-      gfxHeader("TrigSeq64");
-      //DrawInterface();
+      gfxHeader("TriggerSeq4");
+      DrawPages();
     }
 
     void OnSendSysEx() {
@@ -76,10 +87,58 @@ public:
 private:
     TrigSeq64 sequencer;
 
-    /* Example private screen-drawing method
-    void DrawInterface() {
+    void DrawPlayheadIndicator(int x, int page_y, int page_width) {
+        // Right-pointing triangle
+        int tri_x = x + page_width - 14;
+        int tri_y = page_y + 8;
+        gfxLine(tri_x, tri_y - 4, tri_x, tri_y + 4);
+        gfxLine(tri_x, tri_y - 4, tri_x + 4, tri_y);
+        gfxLine(tri_x, tri_y + 4, tri_x + 4, tri_y);
     }
-    */
+    
+    void DrawRitornello(int x, int page_y, int page_width) {
+        // Ritornello: two dots and double bar
+        int rit_x = x + page_width - 8;
+        int rit_y = page_y + 8;
+        gfxPixel(rit_x, rit_y - 3);
+        gfxPixel(rit_x, rit_y + 3);
+        gfxLine(rit_x + 2, rit_y - 5, rit_x + 2, rit_y + 5);
+        gfxLine(rit_x + 4, rit_y - 5, rit_x + 4, rit_y + 5);
+    }
+
+    void DrawPages() {
+        const int page_width = menu::kDisplayWidth / TrigSeq64::PAGE_COUNT;
+        const int page_y = 14;
+        const int page_height = 16;
+        
+        for (int page = 0; page < TrigSeq64::PAGE_COUNT; page++) {
+            int x = page * page_width;
+            
+            // Draw page box
+            gfxFrame(x, page_y, page_width, page_height);
+            
+            
+            // Draw page label
+            gfxPrint(x + 2, page_y + 4, "P");
+            gfxPrint(page + 1);
+            
+            // Draw playhead indicator if playhead is on this page
+            if (page == sequencer.get_playhead_page()) {
+                DrawPlayheadIndicator(x, page_y, page_width);
+            }
+            
+            // Draw ritornello if end cursor is on this page
+            uint8_t end_page = sequencer.end_cursor() / TrigSeq64::PAGE_LENGTH;
+            if (page == end_page) {
+                DrawRitornello(x, page_y, page_width);
+            }
+
+            // Invert if this is the selected page (page_cursor)
+            if (page == sequencer.page_cursor()) {
+                gfxInvert(x + 1, page_y + 1, page_width - 2, page_height - 2);
+            }
+        }
+    }
 };
 
 TrigSeq64App TrigSeq64_instance;
