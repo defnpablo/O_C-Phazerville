@@ -15,9 +15,20 @@ public:
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
 
+  void reset() {
+    playhead_cursor_ = 0;
+  }
+
+  void advance_step() {
+    if (playhead_cursor_ >= end_cursor_) {
+      reset();
+    } else {
+      ++playhead_cursor_;
+    }
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_{};
-
   uint8_t page_cursor_     = 0;
   uint8_t step_cursor_     = 0;
   uint8_t playhead_cursor_ = 0;
