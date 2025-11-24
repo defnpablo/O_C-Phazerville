@@ -35,7 +35,14 @@ public:
     }
 
     void View() {
-      gfxHeader("TriggerSeq4");
+      // Debug header with cursor positions
+      char header[32];
+      snprintf(header, sizeof(header), "PH:%d ST:%d END:%d", 
+               sequencer.playhead_cursor(), 
+               sequencer.step_cursor(), 
+               sequencer.end_cursor());
+      gfxHeader(header);
+      
       DrawPages();
       DrawSteps();
     }
@@ -148,15 +155,16 @@ private:
 
     void DrawPages() {
         const int page_width = menu::kDisplayWidth / TrigSeq64::PAGE_COUNT;
-        const int page_y = 14;
+        const int page_y = 11;
         const int page_height = 16;
         
         for (size_t page = 0; page < TrigSeq64::PAGE_COUNT; page++) {
             int x = static_cast<int>(page) * page_width;
             
-            // Draw page box
-            gfxFrame(x, page_y, page_width, page_height);
-            
+            // Draw page box without top border (header provides top line)
+            gfxLine(x, page_y, x, page_y + page_height - 1);  // Left
+            gfxLine(x, page_y + page_height - 1, x + page_width - 1, page_y + page_height - 1);  // Bottom
+            gfxLine(x + page_width - 1, page_y, x + page_width - 1, page_y + page_height - 1);  // Right
             
             // Draw page label
             gfxPrint(x + 2, page_y + 4, "P");
@@ -200,7 +208,8 @@ private:
         }
         
         // Draw playhead indicator (triangle above or below based on row)
-        if (step_index == sequencer.playhead_cursor()) {
+        uint8_t playhead = sequencer.playhead_cursor();
+        if (step_index == playhead) {
             if (is_top_row) {
                 // Triangle below for top row
                 int tri_y = y + circle_radius + 3;
@@ -231,23 +240,25 @@ private:
     
     void DrawSteps() {
         const int steps_per_row = 8;
-        const int step_spacing = 16;  // Fixed spacing between step centers
-        const int start_x = 8;        // First step center x position (matching reference)
-        const int row_y_top = 40;
-        const int row_y_bottom = 57;
+        const int step_spacing = 16;
+        const int start_x = 8;
+        const int row_y_top = 37;
+        const int row_y_bottom = 54;
         
         // Get current page's step range
         uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
         
+        // Steps 0-7 draw at bottom (y=54), steps 8-15 at top (y=37)
         for (int step = 0; step < 16; step++) {
             int step_index = page_start + step;
             int col = step % steps_per_row;
-            bool is_top_row = (step < steps_per_row);
+            // For visual positioning: steps 0-7 are at bottom, steps 8-15 at top
+            bool is_visual_bottom = (step < steps_per_row);
             
             int x = start_x + (col * step_spacing);
-            int y = is_top_row ? row_y_top : row_y_bottom;
+            int y = is_visual_bottom ? row_y_bottom : row_y_top;
             
-            DrawStep(x, y, step_index, is_top_row);
+            DrawStep(x, y, step_index, !is_visual_bottom);
         }
     }
 };
