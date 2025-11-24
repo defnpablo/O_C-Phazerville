@@ -35,6 +35,9 @@ public:
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
 
+  uint8_t get_step_cursor_page()        const { return step_cursor_ / PAGE_LENGTH; }
+  uint8_t get_playhead_page()           const { return playhead_cursor_ / PAGE_LENGTH; }
+
   void reset_playhead() {
     playhead_cursor_ = 0;
   }

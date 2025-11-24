@@ -473,3 +473,62 @@ TEST(TrigSeq64Test, FillPage_Page3_FillsOnlyPage3)
     EXPECT_TRUE(t.steps()[i]) << "Step " << i << " in page 3 should be set";
   }
 }
+
+// Page getter tests
+TEST(TrigSeq64Test, GetStepCursorPage_VariousPositions_ReturnsCorrectPage)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t0(steps, 0, 0, 63, 0);
+  EXPECT_EQ(0, t0.get_step_cursor_page());
+
+  TrigSeq64 t1(steps, 0, 15, 63, 0);
+  EXPECT_EQ(0, t1.get_step_cursor_page());
+
+  TrigSeq64 t2(steps, 0, 16, 63, 1);
+  EXPECT_EQ(1, t2.get_step_cursor_page());
+
+  TrigSeq64 t3(steps, 0, 31, 63, 1);
+  EXPECT_EQ(1, t3.get_step_cursor_page());
+
+  TrigSeq64 t4(steps, 0, 32, 63, 2);
+  EXPECT_EQ(2, t4.get_step_cursor_page());
+
+  TrigSeq64 t5(steps, 0, 47, 63, 2);
+  EXPECT_EQ(2, t5.get_step_cursor_page());
+
+  TrigSeq64 t6(steps, 0, 48, 63, 3);
+  EXPECT_EQ(3, t6.get_step_cursor_page());
+
+  TrigSeq64 t7(steps, 0, 63, 63, 3);
+  EXPECT_EQ(3, t7.get_step_cursor_page());
+}
+
+TEST(TrigSeq64Test, GetPlayheadPage_VariousPositions_ReturnsCorrectPage)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t0(steps, 0, 0, 63, 0);
+  EXPECT_EQ(0, t0.get_playhead_page());
+
+  TrigSeq64 t1(steps, 15, 0, 63, 0);
+  EXPECT_EQ(0, t1.get_playhead_page());
+
+  TrigSeq64 t2(steps, 16, 0, 63, 0);
+  EXPECT_EQ(1, t2.get_playhead_page());
+
+  TrigSeq64 t3(steps, 31, 0, 63, 1);
+  EXPECT_EQ(1, t3.get_playhead_page());
+
+  TrigSeq64 t4(steps, 32, 0, 63, 2);
+  EXPECT_EQ(2, t4.get_playhead_page());
+
+  TrigSeq64 t5(steps, 47, 0, 63, 2);
+  EXPECT_EQ(2, t5.get_playhead_page());
+
+  TrigSeq64 t6(steps, 48, 0, 63, 3);
+  EXPECT_EQ(3, t6.get_playhead_page());
+
+  TrigSeq64 t7(steps, 63, 0, 63, 3);
+  EXPECT_EQ(3, t7.get_playhead_page());
+}
