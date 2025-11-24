@@ -70,7 +70,7 @@ namespace menu = OC::menu;
 #include "APP_NeuralNetwork.h"
 #include "APP_SCALEEDITOR.h"
 #include "APP_WAVEFORMEDITOR.h"
-#include "trigseq64/APP_TRIGSEQ64.h"
+#include "APP_TRIGSEQ64.h"
 #include "APP_PONGGAME.h"
 #include "APP_Backup.h"
 #include "APP_SETTINGS.h"

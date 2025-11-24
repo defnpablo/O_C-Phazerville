@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "trigseq64/TrigSeq64.h"
+#include "TrigSeq64.h"
 
 // Initialization and state tests
 TEST(TrigSeq64Test, InitialState_Defaults)
