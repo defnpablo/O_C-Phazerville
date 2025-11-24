@@ -183,7 +183,7 @@ private:
 
             // Invert if this is the selected page (page_cursor)
             if (page == sequencer.page_cursor()) {
-                gfxInvert(x + 1, page_y + 1, page_width - 2, page_height - 2);
+                gfxInvert(x + 1, page_y, page_width - 2, page_height - 1);
             }
         }
     }
