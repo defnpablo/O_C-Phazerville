@@ -47,16 +47,12 @@ public:
     }
   }
 
-  // Advance to the next page (one page forward). Does nothing if already
-  // on the last page. Pages do not wrap.
   void advance_page() {
     if (page_cursor_ < (PAGE_COUNT - 1)) {
       ++page_cursor_;
     }
   }
 
-  // Move to the previous page (one page backward). Does nothing if already
-  // on the first page. Pages do not wrap.
   void previous_page() {
     if (page_cursor_ > 0) {
       --page_cursor_;
@@ -70,6 +66,3 @@ private:
   uint8_t playhead_cursor_;
   uint8_t end_cursor_;
 };
-
-
-// add advance_selected_step and backward_selected_step methods (find better name for this one)
