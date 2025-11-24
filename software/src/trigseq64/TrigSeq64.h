@@ -53,9 +53,21 @@ public:
     }
   }
 
-  void previous_page() {
+  void retreat_page() {
     if (page_cursor_ > 0) {
       --page_cursor_;
+    }
+  }
+
+  void advance_end_cursor() {
+    if (end_cursor_ < static_cast<uint8_t>(MAX_STEPS - 1)) {
+      ++end_cursor_;
+    }
+  }
+
+  void retreat_end_cursor() {
+    if (end_cursor_ > 0) {
+      --end_cursor_;
     }
   }
 

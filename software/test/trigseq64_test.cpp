@@ -105,7 +105,7 @@ TEST(TrigSeq64Test, AdvancePage_AtLastPage_DoesNothing)
   EXPECT_EQ(TrigSeq64::PAGE_COUNT - 1, t.page_cursor());
 }
 
-TEST(TrigSeq64Test, PreviousPage_FromMiddle_Decrements)
+TEST(TrigSeq64Test, RetreatPage_FromMiddle_Decrements)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
 
@@ -115,11 +115,11 @@ TEST(TrigSeq64Test, PreviousPage_FromMiddle_Decrements)
               63,
               2);
 
-  t.previous_page();
+  t.retreat_page();
   EXPECT_EQ(1, t.page_cursor());
 }
 
-TEST(TrigSeq64Test, PreviousPage_AtFirstPage_DoesNothing)
+TEST(TrigSeq64Test, RetreatPage_AtFirstPage_DoesNothing)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
 
@@ -129,6 +129,63 @@ TEST(TrigSeq64Test, PreviousPage_AtFirstPage_DoesNothing)
               63,
               0);
 
-  t.previous_page();
+  t.retreat_page();
   EXPECT_EQ(0, t.page_cursor());
+}
+
+// End-cursor navigation tests
+TEST(TrigSeq64Test, AdvanceEndCursor_FromMiddle_Increments)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              10,
+              0);
+
+  t.advance_end_cursor();
+  EXPECT_EQ(11, t.end_cursor());
+}
+
+TEST(TrigSeq64Test, AdvanceEndCursor_AtMax_DoesNothing)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              TrigSeq64::MAX_STEPS - 1,
+              0);
+
+  t.advance_end_cursor();
+  EXPECT_EQ(TrigSeq64::MAX_STEPS - 1, t.end_cursor());
+}
+
+TEST(TrigSeq64Test, etreatEndCursor_FromMiddle_Decrements)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              20,
+              0);
+
+  t.retreat_end_cursor();
+  EXPECT_EQ(19, t.end_cursor());
+}
+
+TEST(TrigSeq64Test, RetreatEndCursor_AtZero_DoesNothing)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              0,
+              0);
+
+  t.retreat_end_cursor();
+  EXPECT_EQ(0, t.end_cursor());
 }
