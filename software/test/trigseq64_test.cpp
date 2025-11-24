@@ -75,3 +75,60 @@ TEST(TrigSeq64Test, AdvanceStep_EndOfLastPage_WrapsToZero)
 
   EXPECT_EQ(0, t.playhead_cursor());
 }
+
+// Page navigation tests
+TEST(TrigSeq64Test, AdvancePage_FromMiddle_Increments)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0, // playhead
+              0, // step
+              63, // end
+              1); // page
+
+  t.advance_page();
+  EXPECT_EQ(2, t.page_cursor());
+}
+
+TEST(TrigSeq64Test, AdvancePage_AtLastPage_DoesNothing)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              TrigSeq64::PAGE_COUNT - 1);
+
+  t.advance_page();
+  EXPECT_EQ(TrigSeq64::PAGE_COUNT - 1, t.page_cursor());
+}
+
+TEST(TrigSeq64Test, PreviousPage_FromMiddle_Decrements)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              2);
+
+  t.previous_page();
+  EXPECT_EQ(1, t.page_cursor());
+}
+
+TEST(TrigSeq64Test, PreviousPage_AtFirstPage_DoesNothing)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              0,
+              0,
+              63,
+              0);
+
+  t.previous_page();
+  EXPECT_EQ(0, t.page_cursor());
+}
