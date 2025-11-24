@@ -71,6 +71,10 @@ public:
     }
   }
 
+  void set_end_cursor_to_page_end() {
+    end_cursor_ = page_cursor_ * PAGE_LENGTH + PAGE_LENGTH - 1;
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_;
   uint8_t page_cursor_;
