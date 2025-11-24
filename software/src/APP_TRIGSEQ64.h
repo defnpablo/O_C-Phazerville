@@ -3,13 +3,16 @@
 #include "TrigSeq64.h"
 
 class TrigSeq64App : public HSApplication, public SystemExclusiveHandler {
+    friend size_t TrigSeq64_save(void *storage);
+    friend size_t TrigSeq64_restore(const void *storage);
+    
 public:
     void Start() {
       sequencer = TrigSeq64();
     }
 
     void Resume() {
-      LoadFromEEPROMStage();
+      // State is restored automatically via TrigSeq64_restore()
     }
 
     void Suspend() {
@@ -59,11 +62,11 @@ public:
     }
 
     void OnUpButtonPress() {
-      sequencer.advance_page();
+      sequencer.retreat_page();
     }
 
     void OnDownButtonPress() {
-      sequencer.retreat_page();
+      sequencer.advance_page();
     }
 
     void OnDownButtonLongPress() {
@@ -89,8 +92,43 @@ public:
 private:
     TrigSeq64 sequencer;
 
+    size_t SaveToStorage(void *storage) {
+        uint8_t *data = static_cast<uint8_t*>(storage);
+        size_t offset = 0;
+        
+        uint64_t steps_value = sequencer.steps().to_ullong();
+        memcpy(data + offset, &steps_value, sizeof(steps_value));
+        offset += sizeof(steps_value);
+        
+        data[offset++] = sequencer.page_cursor();
+        data[offset++] = sequencer.step_cursor();
+        data[offset++] = sequencer.playhead_cursor();
+        data[offset++] = sequencer.end_cursor();
+        
+        return offset;
+    }
+    
+    size_t RestoreFromStorage(const void *storage) {
+        const uint8_t *data = static_cast<const uint8_t*>(storage);
+        size_t offset = 0;
+        
+        uint64_t steps_value;
+        memcpy(&steps_value, data + offset, sizeof(steps_value));
+        offset += sizeof(steps_value);
+        std::bitset<TrigSeq64::MAX_STEPS> steps(steps_value);
+        
+        uint8_t page_cursor = data[offset++];
+        uint8_t step_cursor = data[offset++];
+        uint8_t playhead_cursor = data[offset++];
+        uint8_t end_cursor = data[offset++];
+        
+        sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor);
+        
+        return offset;
+    }
+
     void DrawPlayheadIndicator(int x, int page_y, int page_width) {
-        // Right-pointing triangle
+        // Right-pointing triangle ►
         int tri_x = x + page_width - 14;
         int tri_y = page_y + 8;
         gfxLine(tri_x, tri_y - 4, tri_x, tri_y + 4);
@@ -223,48 +261,16 @@ void TrigSeq64_init() {
 }
 
 // Storage: save sequencer state
-size_t TrigSeq64_storageSize() {
+static constexpr size_t TrigSeq64_storageSize() {
     return sizeof(uint64_t) + 4 * sizeof(uint8_t);
 }
 
 size_t TrigSeq64_save(void *storage) {
-    uint8_t *data = static_cast<uint8_t*>(storage);
-    size_t offset = 0;
-    
-    // Save the 64-bit step pattern
-    uint64_t steps_value = TrigSeq64_instance.sequencer.steps().to_ullong();
-    memcpy(data + offset, &steps_value, sizeof(steps_value));
-    offset += sizeof(steps_value);
-    
-    // Save cursor positions
-    data[offset++] = TrigSeq64_instance.sequencer.page_cursor();
-    data[offset++] = TrigSeq64_instance.sequencer.step_cursor();
-    data[offset++] = TrigSeq64_instance.sequencer.playhead_cursor();
-    data[offset++] = TrigSeq64_instance.sequencer.end_cursor();
-    
-    return TrigSeq64_storageSize();
+    return TrigSeq64_instance.SaveToStorage(storage);
 }
 
 size_t TrigSeq64_restore(const void *storage) {
-    const uint8_t *data = static_cast<const uint8_t*>(storage);
-    size_t offset = 0;
-    
-    // Restore the 64-bit step pattern
-    uint64_t steps_value;
-    memcpy(&steps_value, data + offset, sizeof(steps_value));
-    offset += sizeof(steps_value);
-    std::bitset<TrigSeq64::MAX_STEPS> steps(steps_value);
-    
-    // Restore cursor positions
-    uint8_t page_cursor = data[offset++];
-    uint8_t step_cursor = data[offset++];
-    uint8_t playhead_cursor = data[offset++];
-    uint8_t end_cursor = data[offset++];
-    
-    // Reconstruct sequencer with saved state
-    TrigSeq64_instance.sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor);
-    
-    return TrigSeq64_storageSize();
+    return TrigSeq64_instance.RestoreFromStorage(storage);
 }
 
 void TrigSeq64_isr() {
@@ -338,3 +344,5 @@ void TrigSeq64_handleEncoderEvent(const UI::Event &event) {
     // Right encoder turned
     if (event.control == OC::CONTROL_ENCODER_R) TrigSeq64_instance.OnRightEncoderMove(event.value);
 }
+
+// TODO: instructions in a semantic way
