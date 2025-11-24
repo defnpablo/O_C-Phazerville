@@ -151,8 +151,8 @@ private:
         const int page_y = 14;
         const int page_height = 16;
         
-        for (int page = 0; page < TrigSeq64::PAGE_COUNT; page++) {
-            int x = page * page_width;
+        for (size_t page = 0; page < TrigSeq64::PAGE_COUNT; page++) {
+            int x = static_cast<int>(page) * page_width;
             
             // Draw page box
             gfxFrame(x, page_y, page_width, page_height);
@@ -230,7 +230,6 @@ private:
     }
     
     void DrawSteps() {
-        const int circle_radius = 7;
         const int steps_per_row = 8;
         const int step_spacing = 16;  // Fixed spacing between step centers
         const int start_x = 8;        // First step center x position (matching reference)
