@@ -31,3 +31,47 @@ TEST(TrigSeq64Test, Reset)
   EXPECT_EQ(15, t.end_cursor());
   EXPECT_EQ(1,  t.page_cursor());
 }
+
+TEST(TrigSeq64Test, AdvanceStep_RegularNext)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              5,
+              0,
+              63,
+              0);
+
+  t.advance_step();
+  EXPECT_EQ(6, t.playhead_cursor());
+}
+
+TEST(TrigSeq64Test, AdvanceStep_EndOfFirstPage_GoesToNextPage)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              15,
+              0,
+              63,
+              0);
+
+  t.advance_step();
+
+  EXPECT_EQ(16, t.playhead_cursor());
+}
+
+TEST(TrigSeq64Test, AdvanceStep_EndOfLastPage_WrapsToZero)
+{
+  std::bitset<TrigSeq64::MAX_STEPS> steps;
+
+  TrigSeq64 t(steps,
+              63,
+              0,
+              63,
+              0);
+
+  t.advance_step();
+
+  EXPECT_EQ(0, t.playhead_cursor());
+}
