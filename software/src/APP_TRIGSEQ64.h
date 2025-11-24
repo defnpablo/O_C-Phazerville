@@ -33,6 +33,7 @@ public:
     void View() {
       gfxHeader("TriggerSeq4");
       DrawPages();
+      DrawSteps();
     }
 
     void OnSendSysEx() {
@@ -137,6 +138,78 @@ private:
             if (page == sequencer.page_cursor()) {
                 gfxInvert(x + 1, page_y + 1, page_width - 2, page_height - 2);
             }
+        }
+    }
+    
+    void DrawStep(int x, int y, int step_index, bool is_top_row) {
+        const int circle_radius = 7;
+        
+        // Draw circle outline
+        gfxCircle(x, y, circle_radius);
+        
+        // Fill circle if step is on
+        if (sequencer.steps()[step_index]) {
+            for (int r = 0; r < circle_radius; r++) {
+                gfxCircle(x, y, r);
+            }
+        }
+        
+        // Draw step cursor indicator (square around circle)
+        if (step_index == sequencer.step_cursor()) {
+            gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
+                    (circle_radius + 1) * 2, (circle_radius + 1) * 2);
+        }
+        
+        // Draw playhead indicator (triangle above or below based on row)
+        if (step_index == sequencer.playhead_cursor()) {
+            if (is_top_row) {
+                // Triangle below for top row
+                int tri_y = y + circle_radius + 3;
+                gfxLine(x - 3, tri_y, x, tri_y + 3);
+                gfxLine(x + 3, tri_y, x, tri_y + 3);
+                gfxLine(x - 3, tri_y, x + 3, tri_y);
+            } else {
+                // Triangle above for bottom row
+                int tri_y = y - circle_radius - 3;
+                gfxLine(x - 3, tri_y, x, tri_y - 3);
+                gfxLine(x + 3, tri_y, x, tri_y - 3);
+                gfxLine(x - 3, tri_y, x + 3, tri_y);
+            }
+        }
+        
+        // Draw end cursor indicator (vertical line to the right, positioned by row)
+        if (step_index == sequencer.end_cursor()) {
+            int line_x = x + circle_radius + 2;
+            if (is_top_row) {
+                // Line at bottom for top row
+                gfxLine(line_x, y + 2, line_x, y + circle_radius);
+            } else {
+                // Line at top for bottom row
+                gfxLine(line_x, y - circle_radius, line_x, y - 2);
+            }
+        }
+    }
+    
+    void DrawSteps() {
+        const int circle_radius = 7;
+        const int steps_per_row = 8;
+        const int step_spacing = 16;  // Fixed spacing between step centers
+        const int start_x = 8;        // First step center x position (matching reference)
+        const int row_y_top = 40;
+        const int row_y_bottom = 57;
+        
+        // Get current page's step range
+        uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
+        
+        for (int step = 0; step < 16; step++) {
+            int step_index = page_start + step;
+            int col = step % steps_per_row;
+            bool is_top_row = (step < steps_per_row);
+            
+            int x = start_x + (col * step_spacing);
+            int y = is_top_row ? row_y_top : row_y_bottom;
+            
+            DrawStep(x, y, step_index, is_top_row);
         }
     }
 };
