@@ -243,10 +243,10 @@ private:
             int line_x = x + circle_radius;
             if (is_top_row) {
                 // Line extending UP from top of circle to bottom of page boxes for top row
-                gfxLine(line_x, 27, line_x, y - circle_radius);
+                gfxLine(line_x, 27, line_x, y + 8);
             } else {
                 // Line extending DOWN from bottom of circle to screen bottom for bottom row
-                gfxLine(line_x, y + circle_radius, line_x, 63);
+                gfxLine(line_x, y - 8, line_x, 63);
             }
         }
     }
