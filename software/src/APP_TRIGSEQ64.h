@@ -41,7 +41,7 @@ public:
                sequencer.playhead_cursor(), 
                sequencer.step_cursor(), 
                sequencer.end_cursor());
-      gfxHeader(header);
+      // gfxHeader(header);
       
       DrawPages();
       DrawSteps();
@@ -136,7 +136,7 @@ private:
 
     void DrawPlayheadIndicator(int x, int page_y, int page_width) {
         // Right-pointing triangle ►
-        int tri_x = x + page_width - 18;
+        int tri_x = x + page_width - 14;
         int tri_y = page_y + 8;
         gfxLine(tri_x, tri_y - 4, tri_x, tri_y + 4);
         gfxLine(tri_x, tri_y - 4, tri_x + 4, tri_y);
@@ -162,14 +162,11 @@ private:
             int x = static_cast<int>(page) * page_width;
             
             // Draw page box without top border (header provides top line)
-            // Only draw left border if not the first page
-            if (page > 0) {
-                gfxLine(x, page_y, x, page_y + page_height - 1);  // Left
-            }
+            // Draw bottom border for all pages
             gfxLine(x, page_y + page_height - 1, x + page_width - 1, page_y + page_height - 1);  // Bottom
-            // Only draw right border if not the last page
-            if (page < TrigSeq64::PAGE_COUNT - 1) {
-                gfxLine(x + page_width - 1, page_y, x + page_width - 1, page_y + page_height - 1);  // Right
+            // Draw vertical divider only between pages (not at edges)
+            if (page > 0) {
+                gfxLine(x, page_y, x, page_y + page_height - 1);  // Divider
             }
             
             // Draw page label
