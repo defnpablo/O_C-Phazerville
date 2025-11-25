@@ -155,7 +155,7 @@ private:
 
     void DrawPages() {
         const int page_width = menu::kDisplayWidth / TrigSeq64::PAGE_COUNT;
-        const int page_y = 11;
+        const int page_y = 1;
         const int page_height = 16;
         
         for (size_t page = 0; page < TrigSeq64::PAGE_COUNT; page++) {
@@ -199,15 +199,17 @@ private:
     }
     
     void DrawStep(int x, int y, int step_index, bool is_top_row) {
-        const int circle_radius = 7;
+        const int circle_radius = 6;
         
         // Draw circle outline
         gfxCircle(x, y, circle_radius);
         
         // Fill circle if step is on
         if (sequencer.steps()[step_index]) {
-            for (int r = 0; r < circle_radius; r++) {
-                gfxCircle(x, y, r);
+            // Fill disk using horizontal lines
+            for (int dy = -circle_radius; dy <= circle_radius; dy++) {
+                int dx = static_cast<int>(sqrt(circle_radius * circle_radius - dy * dy));
+                gfxLine(x - dx, y + dy, x + dx, y + dy);
             }
         }
         
@@ -240,10 +242,10 @@ private:
             int line_x = x + circle_radius;
             if (is_top_row) {
                 // Line extending UP from top of circle to bottom of page boxes for top row
-                gfxLine(line_x, 27, line_x, y + 8);
+                gfxLine(line_x, 17, line_x, y + 8);
             } else {
                 // Line extending DOWN from bottom of circle to screen bottom for bottom row
-                gfxLine(line_x, y - 8, line_x, 63);
+                gfxLine(line_x, y - 8, line_x, 53);
             }
         }
     }
@@ -252,8 +254,8 @@ private:
         const int steps_per_row = 8;
         const int step_spacing = 16;
         const int start_x = 8;
-        const int row_y_top = 37;
-        const int row_y_bottom = 54;
+        const int row_y_top = 27;
+        const int row_y_bottom = 44;
         
         // Get current page's step range
         uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
