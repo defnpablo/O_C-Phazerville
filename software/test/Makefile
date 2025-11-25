@@ -2,7 +2,7 @@
 #
 
 # DIRECTORIES & CONFIG
-OC_SRC_DIR = ../o_c_REV/
+OC_SRC_DIR = ../src/
 BUILD_DIR = ./build/
 
 RM    = rm -f
@@ -12,7 +12,7 @@ CXX   = g++
 LD    = g++
 AR    = ar -r
 
-CPPFLAGS += -I$(OC_SRC_DIR) -I$(GTEST_DIR)include -Wall -Werror -std=c++11
+CPPFLAGS += -I$(OC_SRC_DIR) -I$(GTEST_DIR)include -Wall -Werror -Wno-tautological-pointer-compare -std=c++14
 
 # GTEST
 GTEST_DIR = ./gtest/googletest/

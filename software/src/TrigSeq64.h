@@ -2,12 +2,17 @@
 
 #include <cstdint>
 #include <bitset>
+#include <array>
 
 class TrigSeq64 {
 public:
   static constexpr std::size_t MAX_STEPS   = 64;
   static constexpr std::size_t PAGE_LENGTH = 16;
   static constexpr std::size_t PAGE_COUNT  = 4;
+  
+  static uint8_t min_probability() { return 5; }
+  static uint8_t max_probability() { return 100; }
+  static uint8_t probability_increment() { return 5; }
 
   TrigSeq64()
   : steps_()
@@ -15,7 +20,9 @@ public:
   , step_cursor_(0)
   , playhead_cursor_(0)
   , end_cursor_(15)
-  {}
+  {
+    probabilities_.fill(max_probability());
+  }
 
   TrigSeq64(const std::bitset<MAX_STEPS>& steps,
             uint8_t playhead_cursor,
@@ -27,6 +34,22 @@ public:
   , step_cursor_(step_cursor)
   , playhead_cursor_(playhead_cursor)
   , end_cursor_(end_cursor)
+  {
+    probabilities_.fill(max_probability());
+  }
+
+  TrigSeq64(const std::bitset<MAX_STEPS>& steps,
+            uint8_t playhead_cursor,
+            uint8_t step_cursor,
+            uint8_t end_cursor,
+            uint8_t page_cursor,
+            const std::array<uint8_t, MAX_STEPS>& probabilities)
+  : steps_(steps)
+  , page_cursor_(page_cursor)
+  , step_cursor_(step_cursor)
+  , playhead_cursor_(playhead_cursor)
+  , end_cursor_(end_cursor)
+  , probabilities_(probabilities)
   {}
 
   const std::bitset<MAX_STEPS>& steps() const { return steps_; }
@@ -34,6 +57,14 @@ public:
   uint8_t step_cursor()                 const { return step_cursor_; }
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
+  
+  uint8_t get_step_probability(uint8_t step_index) const {
+    return probabilities_[step_index];
+  }
+  
+  uint8_t get_step_cursor_probability() const {
+    return probabilities_[step_cursor_];
+  }
 
   uint8_t get_step_cursor_page()        const { return step_cursor_ / PAGE_LENGTH; }
   uint8_t get_playhead_page()           const { return playhead_cursor_ / PAGE_LENGTH; }
@@ -123,10 +154,23 @@ public:
     }
   }
 
+  void increase_step_cursor_probability() {
+    if (probabilities_[step_cursor_] < max_probability()) {
+      probabilities_[step_cursor_] += probability_increment();
+    }
+  }
+
+  void decrease_step_cursor_probability() {
+    if (probabilities_[step_cursor_] > min_probability()) {
+      probabilities_[step_cursor_] -= probability_increment();
+    }
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_;
   uint8_t page_cursor_;
   uint8_t step_cursor_;
   uint8_t playhead_cursor_;
   uint8_t end_cursor_;
+  std::array<uint8_t, MAX_STEPS> probabilities_;
 };
