@@ -53,13 +53,16 @@ public:
   }
 
   void advance_page() {
-    if (page_cursor_ < (PAGE_COUNT - 1)) {
-      ++page_cursor_;
+    ++page_cursor_;
+    if (page_cursor_ >= PAGE_COUNT) {
+      page_cursor_ = 0;
     }
   }
 
   void retreat_page() {
-    if (page_cursor_ > 0) {
+    if (page_cursor_ == 0) {
+      page_cursor_ = PAGE_COUNT - 1;
+    } else {
       --page_cursor_;
     }
   }

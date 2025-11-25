@@ -72,6 +72,10 @@ public:
       sequencer.retreat_page();
     }
 
+    void OnUpButtonLongPress() {
+      sequencer.clear_page();
+    }
+
     void OnDownButtonPress() {
       sequencer.advance_page();
     }
@@ -352,6 +356,9 @@ void TrigSeq64_handleButtonEvent(const UI::Event &event) {
     case UI::EVENT_BUTTON_LONG_PRESS:
         if (event.control == OC::CONTROL_BUTTON_L) {
             TrigSeq64_instance.OnLeftButtonLongPress();
+        }
+        if (event.control == OC::CONTROL_BUTTON_UP) {
+            TrigSeq64_instance.OnUpButtonLongPress();
         }
         if (event.control == OC::CONTROL_BUTTON_DOWN) {
             TrigSeq64_instance.OnDownButtonLongPress();
