@@ -163,17 +163,18 @@ UiMode Ui::DispatchEvents(const App *app) {
             app->HandleButtonEvent(event);
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
-        if (OC::CONTROL_BUTTON_UP == event.control && !preempt_screensaver_) {
-          SetButtonIgnoreMask(); // ignore release
-          screensaver_ = true;
-        }
+        // Disabled system-level screensaver trigger on UP button long press
+        // if (OC::CONTROL_BUTTON_UP == event.control && !preempt_screensaver_) {
+        //   SetButtonIgnoreMask(); // ignore release
+        //   screensaver_ = true;
+        // }
+        // else
         //else if (event.control == OC::CONTROL_BUTTON_R) {
           // only if holding both encoders...
           //if (event.mask == (OC::CONTROL_BUTTON_L | OC::CONTROL_BUTTON_R))
           //jump_to_menu_ = true;
         //}
-        else
-          app->HandleButtonEvent(event);
+        app->HandleButtonEvent(event);
         break;
       case UI::EVENT_BUTTON_LONG_RELEASE:
         if (event.control == OC::CONTROL_BUTTON_R)
