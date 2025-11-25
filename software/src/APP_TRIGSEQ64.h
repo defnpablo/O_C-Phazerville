@@ -136,7 +136,7 @@ private:
 
     void DrawPlayheadIndicator(int x, int page_y, int page_width) {
         // Right-pointing triangle ►
-        int tri_x = x + page_width - 14;
+        int tri_x = x + page_width - 18;
         int tri_y = page_y + 8;
         gfxLine(tri_x, tri_y - 4, tri_x, tri_y + 4);
         gfxLine(tri_x, tri_y - 4, tri_x + 4, tri_y);
@@ -227,13 +227,13 @@ private:
         
         // Draw end cursor indicator (vertical line to the right of circle)
         if (step_index == sequencer.end_cursor()) {
-            int line_x = x + circle_radius + 2;
+            int line_x = x + circle_radius;
             if (is_top_row) {
-                // Line extending down from bottom of circle for top row
-                gfxLine(line_x, y, line_x, y + circle_radius + 3);
+                // Line extending UP from top of circle to bottom of page boxes for top row
+                gfxLine(line_x, 27, line_x, y - circle_radius);
             } else {
-                // Line extending up from top of circle for bottom row
-                gfxLine(line_x, y - circle_radius - 3, line_x, y);
+                // Line extending DOWN from bottom of circle to screen bottom for bottom row
+                gfxLine(line_x, y + circle_radius, line_x, 63);
             }
         }
     }
