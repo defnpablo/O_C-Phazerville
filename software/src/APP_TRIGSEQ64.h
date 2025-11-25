@@ -162,9 +162,15 @@ private:
             int x = static_cast<int>(page) * page_width;
             
             // Draw page box without top border (header provides top line)
-            gfxLine(x, page_y, x, page_y + page_height - 1);  // Left
+            // Only draw left border if not the first page
+            if (page > 0) {
+                gfxLine(x, page_y, x, page_y + page_height - 1);  // Left
+            }
             gfxLine(x, page_y + page_height - 1, x + page_width - 1, page_y + page_height - 1);  // Bottom
-            gfxLine(x + page_width - 1, page_y, x + page_width - 1, page_y + page_height - 1);  // Right
+            // Only draw right border if not the last page
+            if (page < TrigSeq64::PAGE_COUNT - 1) {
+                gfxLine(x + page_width - 1, page_y, x + page_width - 1, page_y + page_height - 1);  // Right
+            }
             
             // Draw page label
             gfxPrint(x + 2, page_y + 4, "P");
@@ -183,7 +189,14 @@ private:
 
             // Invert if this is the selected page (page_cursor)
             if (page == sequencer.page_cursor()) {
-                gfxInvert(x + 1, page_y, page_width - 2, page_height - 1);
+                // Adjust inversion based on which borders exist
+                int invert_x = (page == 0) ? x : x + 1;
+                int invert_width = page_width;
+                if (page == 0) invert_width -= 1;  // First page: no left border, adjust right
+                else if (page == TrigSeq64::PAGE_COUNT - 1) invert_width -= 1;  // Last page: no right border, adjust left
+                else invert_width -= 2;  // Middle pages: both borders exist
+                
+                gfxInvert(invert_x, page_y, invert_width, page_height - 1);
             }
         }
     }
