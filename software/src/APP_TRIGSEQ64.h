@@ -200,15 +200,16 @@ private:
     
     void DrawStep(int x, int y, int step_index, bool is_top_row) {
         const int circle_radius = 6;
+        const int inner_radius = 3;
         
         // Draw circle outline
         gfxCircle(x, y, circle_radius);
         
-        // Fill circle if step is on
+        // Fill inner circle if step is on
         if (sequencer.steps()[step_index]) {
-            // Fill disk using horizontal lines
-            for (int dy = -circle_radius; dy <= circle_radius; dy++) {
-                int dx = static_cast<int>(sqrt(circle_radius * circle_radius - dy * dy));
+            // Fill smaller disk using horizontal lines
+            for (int dy = -inner_radius; dy <= inner_radius; dy++) {
+                int dx = static_cast<int>(sqrt(inner_radius * inner_radius - dy * dy));
                 gfxLine(x - dx, y + dy, x + dx, y + dy);
             }
         }
@@ -224,7 +225,7 @@ private:
         if (step_index == playhead) {
             if (is_top_row) {
                 // Solid triangle touching page bottom for top row (pointing down)
-                int tri_y = 19;  // Page bottom
+                int tri_y = 18;  // Page bottom
                 for (int dy = 0; dy <= 3; dy++) {
                     int width = 3 - dy;
                     gfxLine(x - width, tri_y + dy, x + width, tri_y + dy);
@@ -244,7 +245,7 @@ private:
             int line_x = x + circle_radius;
             if (is_top_row) {
                 // Line extending UP from top of circle to bottom of page boxes for top row
-                gfxLine(line_x, 19, line_x, y + 6);
+                gfxLine(line_x, 18, line_x, y + 6);
             } else {
                 // Line extending DOWN from bottom of circle to screen bottom for bottom row
                 gfxLine(line_x, y - 6, line_x, 63);
@@ -256,8 +257,8 @@ private:
         const int steps_per_row = 8;
         const int step_spacing = 16;
         const int start_x = 8;
-        const int row_y_top = 33;
-        const int row_y_bottom = 50;
+        const int row_y_top = 32;
+        const int row_y_bottom = 51;
         
         // Get current page's step range
         uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
