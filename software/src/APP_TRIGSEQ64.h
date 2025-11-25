@@ -219,21 +219,23 @@ private:
                     (circle_radius + 1) * 2, (circle_radius + 1) * 2);
         }
         
-        // Draw playhead indicator (triangle at circle edge)
+        // Draw playhead indicator (solid triangle)
         uint8_t playhead = sequencer.playhead_cursor();
         if (step_index == playhead) {
             if (is_top_row) {
-                // Triangle at top of circle for top row (pointing down)
-                int tri_y = y - circle_radius - 1;
-                gfxLine(x - 3, tri_y, x, tri_y + 3);
-                gfxLine(x + 3, tri_y, x, tri_y + 3);
-                gfxLine(x - 3, tri_y, x + 3, tri_y);
+                // Solid triangle touching page bottom for top row (pointing down)
+                int tri_y = 19;  // Page bottom
+                for (int dy = 0; dy <= 3; dy++) {
+                    int width = 3 - dy;
+                    gfxLine(x - width, tri_y + dy, x + width, tri_y + dy);
+                }
             } else {
-                // Triangle at bottom of circle for bottom row (pointing up)
-                int tri_y = y + circle_radius + 4;
-                gfxLine(x - 3, tri_y, x, tri_y - 3);
-                gfxLine(x + 3, tri_y, x, tri_y - 3);
-                gfxLine(x - 3, tri_y, x + 3, tri_y);
+                // Solid triangle at bottom of circle for bottom row (pointing up)
+                int tri_y = y + circle_radius + 6;
+                for (int dy = 0; dy <= 3; dy++) {
+                    int width = 3 - dy;
+                    gfxLine(x - width, tri_y - dy, x + width, tri_y - dy);
+                }
             }
         }
         
@@ -242,10 +244,10 @@ private:
             int line_x = x + circle_radius;
             if (is_top_row) {
                 // Line extending UP from top of circle to bottom of page boxes for top row
-                gfxLine(line_x, 17, line_x, y + 8);
+                gfxLine(line_x, 19, line_x, y + 6);
             } else {
                 // Line extending DOWN from bottom of circle to screen bottom for bottom row
-                gfxLine(line_x, y - 8, line_x, 53);
+                gfxLine(line_x, y - 6, line_x, 63);
             }
         }
     }
@@ -254,8 +256,8 @@ private:
         const int steps_per_row = 8;
         const int step_spacing = 16;
         const int start_x = 8;
-        const int row_y_top = 27;
-        const int row_y_bottom = 44;
+        const int row_y_top = 33;
+        const int row_y_bottom = 50;
         
         // Get current page's step range
         uint8_t page_start = sequencer.page_cursor() * TrigSeq64::PAGE_LENGTH;
