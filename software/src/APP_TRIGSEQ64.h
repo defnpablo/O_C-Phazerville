@@ -89,28 +89,29 @@ public:
     }
 
     void OnLeftEncoderMove(int direction) {
+      // Left encoder always moves step cursor (in both normal and probability mode)
+      if (direction > 0) {
+        sequencer.advance_step_cursor();
+      } else {
+        sequencer.retreat_step_cursor();
+      }
+    }
+
+    void OnRightEncoderMove(int direction) {
       if (left_encoder_held_) {
-        // Probability editing mode
+        // In probability mode, adjust probability with right encoder
         if (direction > 0) {
           sequencer.increase_step_cursor_probability();
         } else {
           sequencer.decrease_step_cursor_probability();
         }
       } else {
-        // Normal cursor movement
+        // Normal mode, move end cursor
         if (direction > 0) {
-          sequencer.advance_step_cursor();
+          sequencer.advance_end_cursor();
         } else {
-          sequencer.retreat_step_cursor();
+          sequencer.retreat_end_cursor();
         }
-      }
-    }
-
-    void OnRightEncoderMove(int direction) {
-      if (direction > 0) {
-        sequencer.advance_end_cursor();
-      } else {
-        sequencer.retreat_end_cursor();
       }
     }
 
@@ -248,6 +249,12 @@ private:
                 int tenths = static_cast<int>(prob * 10.0f + 0.5f);
                 gfxPrint(x - 5, y - 3, ".");
                 gfxPrint(x - 2, y - 3, tenths);
+            }
+            
+            // Draw step cursor indicator (square around probability number)
+            if (step_index == sequencer.step_cursor()) {
+                gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
+                        (circle_radius + 1) * 2, (circle_radius + 1) * 2);
             }
         } else {
             // Draw circle outline
