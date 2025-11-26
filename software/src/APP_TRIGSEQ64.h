@@ -64,8 +64,8 @@ public:
       DrawPages();
       DrawSteps();
       
-      // Draw border around page tab container when in probability mode
-      if (!controlling_end_cursor_) {
+      // Draw border around page tab container when in end of seq mode
+      if (controlling_end_cursor_) {
         gfxFrame(0, 0, 128, 18);  // Only around the page tabs area
       }
     }
@@ -270,7 +270,7 @@ private:
                 int invert_width = page_width;
                 if (page == 0) invert_width -= 1;  // First page: no left border, adjust right
                 else if (page == TrigSeq64::PAGE_COUNT - 1) invert_width -= 1;  // Last page: no right border, adjust left
-                else invert_width -= 2;  // Middle pages: both borders exist
+                else invert_width -= 1;  // Middle pages: account for left border
                 
                 gfxInvert(invert_x, page_y, invert_width, page_height - 1);
             }
