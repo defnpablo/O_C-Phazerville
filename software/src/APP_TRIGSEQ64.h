@@ -241,6 +241,8 @@ private:
         // If in probability editing mode, show compact decimal instead of circle
         if (show_probability) {
             float prob = sequencer.get_step_probability(step_index);
+            
+            // Draw probability numbers first
             if (prob >= 0.999f) {
                 // 100%: just show "1"
                 gfxPrint(x - 2, y - 3, "1");
@@ -251,7 +253,13 @@ private:
                 gfxPrint(x - 2, y - 3, tenths);
             }
             
-            // Draw step cursor indicator (square around probability number)
+            // Invert background for steps that are ON (2px smaller than selection frame)
+            if (sequencer.steps()[step_index]) {
+                gfxInvert(x - circle_radius + 1, y - circle_radius + 1, 
+                         (circle_radius - 1) * 2, (circle_radius - 1) * 2);
+            }
+            
+            // Draw step cursor indicator last (square around probability number)
             if (step_index == sequencer.step_cursor()) {
                 gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
                         (circle_radius + 1) * 2, (circle_radius + 1) * 2);
