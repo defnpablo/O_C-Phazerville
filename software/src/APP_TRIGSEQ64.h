@@ -268,9 +268,16 @@ private:
                 // Adjust inversion based on which borders exist
                 int invert_x = (page == 0) ? x : x + 1;
                 int invert_width = page_width;
-                if (page == 0) invert_width -= 1;  // First page: no left border, adjust right
-                else if (page == TrigSeq64::PAGE_COUNT - 1) invert_width -= 1;  // Last page: no right border, adjust left
-                else invert_width -= 1;  // Middle pages: account for left border
+                if (page == 0) {
+                    // First page: no left border, just avoid right edge
+                    invert_width = page_width;
+                } else if (page == TrigSeq64::PAGE_COUNT - 1) {
+                    // Last page: has left border, no right border
+                    invert_width -= 1;
+                } else {
+                    // Middle pages: has left border, avoid right edge
+                    invert_width -= 1;
+                }
                 
                 gfxInvert(invert_x, page_y, invert_width, page_height - 1);
             }
