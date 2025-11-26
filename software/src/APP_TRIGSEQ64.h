@@ -26,9 +26,17 @@ public:
         if (sequencer.playhead_cursor() >= sequencer.end_cursor()) {
           playhead_blink_counter_ = 6;  // Trigger blink effect on clock (longer duration)
         }
+        
+        // Check if step is on and apply probability
         if (sequencer.is_playhead_step_on()) {
-          ClockOut(0);  // Send trigger on output A if step is on
+          float prob = sequencer.get_step_probability(sequencer.playhead_cursor());
+          int prob_percent = static_cast<int>(prob * 100.0f);
+          // Trigger if random roll is within probability threshold
+          if (random(1, 101) <= prob_percent) {
+            ClockOut(0);  // Send trigger on output A if probability passes
+          }
         }
+        
         sequencer.advance_playhead();
       }
 
