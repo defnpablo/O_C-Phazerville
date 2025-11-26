@@ -185,6 +185,20 @@ public:
     probabilities_[step_cursor_] = max_probability();
   }
 
+  void set_page_probabilities_max() {
+    uint8_t page_start = page_cursor_ * PAGE_LENGTH;
+    for (uint8_t i = 0; i < PAGE_LENGTH; ++i) {
+      probabilities_[page_start + i] = max_probability();
+    }
+  }
+
+  void set_page_probabilities_min() {
+    uint8_t page_start = page_cursor_ * PAGE_LENGTH;
+    for (uint8_t i = 0; i < PAGE_LENGTH; ++i) {
+      probabilities_[page_start + i] = min_probability();
+    }
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_;
   uint8_t page_cursor_;

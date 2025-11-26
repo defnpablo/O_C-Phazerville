@@ -107,7 +107,13 @@ public:
     }
 
     void OnUpButtonLongPress() {
-      sequencer.clear_page();
+      if (controlling_end_cursor_) {
+        // End cursor mode: clear page
+        sequencer.clear_page();
+      } else {
+        // Probability mode: set current page probabilities to 100%
+        sequencer.set_page_probabilities_max();
+      }
     }
 
     void OnDownButtonPress() {
@@ -115,7 +121,13 @@ public:
     }
 
     void OnDownButtonLongPress() {
-      sequencer.fill_page();
+      if (controlling_end_cursor_) {
+        // End cursor mode: fill page
+        sequencer.fill_page();
+      } else {
+        // Probability mode: set current page probabilities to 10%
+        sequencer.set_page_probabilities_min();
+      }
     }
 
     void OnLeftEncoderMove(int direction) {
