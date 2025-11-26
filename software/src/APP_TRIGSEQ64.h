@@ -22,6 +22,10 @@ public:
     void Controller() {
       // Clock input on trigger 1: check step and advance
       if (Clock(0)) {
+        // Only blink if we're at the end and will wrap to step 0
+        if (sequencer.playhead_cursor() >= sequencer.end_cursor()) {
+          playhead_blink_counter_ = 6;  // Trigger blink effect on clock (longer duration)
+        }
         if (sequencer.is_playhead_step_on()) {
           ClockOut(0);  // Send trigger on output A if step is on
         }
@@ -31,10 +35,16 @@ public:
       // Reset sequencer on trigger input 2
       if (Clock(1)) {
         sequencer.reset_playhead();
+        // Don't trigger blink on reset
       }
     }
 
     void View() {
+      // Decrement blink counter
+      if (playhead_blink_counter_ > 0) {
+        playhead_blink_counter_--;
+      }
+      
       // Debug header with cursor positions
       char header[32];
       snprintf(header, sizeof(header), "PH:%d ST:%d END:%d", 
@@ -45,6 +55,11 @@ public:
       
       DrawPages();
       DrawSteps();
+      
+      // Draw border around page tab container when in probability mode
+      if (!controlling_end_cursor_) {
+        gfxFrame(0, 0, 128, 18);  // Only around the page tabs area
+      }
     }
 
     void OnSendSysEx() {
@@ -61,13 +76,8 @@ public:
     }
 
     void OnLeftButtonLongPress() {
-      if (left_encoder_held_) {
-        // If already in probability mode, exit it
-        left_encoder_held_ = false;
-      } else {
-        // Enter probability mode
-        left_encoder_held_ = true;
-      }
+      // Toggle between controlling probability and controlling end cursor
+      controlling_end_cursor_ = !controlling_end_cursor_;
     }
 
     void OnLeftButtonRelease() {
@@ -75,12 +85,12 @@ public:
     }
 
     void OnRightButtonPress() {
-      if (left_encoder_held_) {
-        // In probability mode, reset current step to 100%
-        sequencer.reset_step_cursor_probability();
-      } else {
-        // Normal mode, set end cursor to page end
+      if (controlling_end_cursor_) {
+        // End cursor mode: set end cursor to page end
         sequencer.set_end_cursor_to_page_end();
+      } else {
+        // Probability mode: reset current step to 100%
+        sequencer.reset_step_cursor_probability();
       }
     }
 
@@ -110,26 +120,27 @@ public:
     }
 
     void OnRightEncoderMove(int direction) {
-      if (left_encoder_held_) {
-        // In probability mode, adjust probability with right encoder
-        if (direction > 0) {
-          sequencer.increase_step_cursor_probability();
-        } else {
-          sequencer.decrease_step_cursor_probability();
-        }
-      } else {
-        // Normal mode, move end cursor
+      if (controlling_end_cursor_) {
+        // End cursor mode: move end cursor
         if (direction > 0) {
           sequencer.advance_end_cursor();
         } else {
           sequencer.retreat_end_cursor();
+        }
+      } else {
+        // Probability mode: adjust probability with right encoder
+        if (direction > 0) {
+          sequencer.increase_step_cursor_probability();
+        } else {
+          sequencer.decrease_step_cursor_probability();
         }
       }
     }
 
 private:
     TrigSeq64 sequencer;
-    bool left_encoder_held_ = false;
+    bool controlling_end_cursor_ = true;  // false = adjust probability, true = move end cursor
+    uint8_t playhead_blink_counter_ = 0;  // Counter for playhead blink effect
 
     size_t SaveToStorage(void *storage) {
         uint8_t *data = static_cast<uint8_t*>(storage);
@@ -246,72 +257,40 @@ private:
         }
     }
     
-    void DrawStep(int x, int y, int step_index, bool is_top_row, bool show_probability) {
-        const int circle_radius = 6;
-        const int inner_radius = 3;
+    void DrawStep(int x, int y, int step_index, bool is_top_row) {
+        const int box_radius = 6;
         
-        // If in probability editing mode, show compact decimal instead of circle
-        if (show_probability) {
-            float prob = sequencer.get_step_probability(step_index);
-            
-            // Draw probability numbers first
-            if (prob >= 0.999f) {
-                // 100%: just show "1"
-                gfxPrint(x - 2, y - 3, "1");
-            } else {
-                // <100%: show .1, .2, .3, etc
-                int tenths = static_cast<int>(prob * 10.0f + 0.5f);
-                gfxPrint(x - 5, y - 3, ".");
-                gfxPrint(x - 2, y - 3, tenths);
-            }
-            
-            // Invert background for steps that are ON (2px smaller than selection frame)
-            if (sequencer.steps()[step_index]) {
-                gfxInvert(x - circle_radius + 1, y - circle_radius + 1, 
-                         (circle_radius - 1) * 2, (circle_radius - 1) * 2);
-            }
-            
-            // Draw step cursor indicator last (square around probability number)
-            if (step_index == sequencer.step_cursor()) {
-                gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
-                        (circle_radius + 1) * 2, (circle_radius + 1) * 2);
-            }
+        // Always show probability numbers
+        float prob = sequencer.get_step_probability(step_index);
+        
+        // Draw probability numbers first
+        if (prob >= 0.999f) {
+            // 100%: just show "1"
+            gfxPrint(x - 2, y - 3, "1");
         } else {
-            // Draw circle outline
-            gfxCircle(x, y, circle_radius);
-            
-            // Fill based on step state and probability
-            if (sequencer.steps()[step_index]) {
-                float prob = sequencer.get_step_probability(step_index);
-                
-                if (prob >= 0.999f) {  // Close to 1.0 (100%)
-                    // 100% probability: fill entire circle (solid)
-                    for (int dy = -circle_radius; dy <= circle_radius; dy++) {
-                        int dx = static_cast<int>(sqrt(circle_radius * circle_radius - dy * dy));
-                        gfxLine(x - dx, y + dy, x + dx, y + dy);
-                    }
-                } else {
-                    // Less than 100%: fill inner circle only (ring)
-                    for (int dy = -inner_radius; dy <= inner_radius; dy++) {
-                        int dx = static_cast<int>(sqrt(inner_radius * inner_radius - dy * dy));
-                        gfxLine(x - dx, y + dy, x + dx, y + dy);
-                    }
-                }
-            }
-            // else: hollow circle (step is off)
-            
-            // Draw step cursor indicator (square around circle)
-            if (step_index == sequencer.step_cursor()) {
-                gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
-                        (circle_radius + 1) * 2, (circle_radius + 1) * 2);
-            }
+            // <100%: show .1, .2, .3, etc
+            int tenths = static_cast<int>(prob * 10.0f + 0.5f);
+            gfxPrint(x - 5, y - 3, ".");
+            gfxPrint(x - 2, y - 3, tenths);
+        }
+        
+        // Invert background for steps that are ON
+        if (sequencer.steps()[step_index]) {
+            gfxInvert(x - box_radius + 1, y - box_radius + 1, 
+                     (box_radius - 1) * 2, (box_radius - 1) * 2);
+        }
+        
+        // Draw step cursor indicator (square around probability number)
+        if (step_index == sequencer.step_cursor()) {
+            gfxFrame(x - box_radius - 1, y - box_radius - 1, 
+                    (box_radius + 1) * 2, (box_radius + 1) * 2);
         }
         
         // Always draw playhead and end cursor indicators (even in probability mode)
         
-        // Draw playhead indicator (solid triangle)
+        // Draw playhead indicator (solid triangle) - hide when blinking
         uint8_t playhead = sequencer.playhead_cursor();
-        if (step_index == playhead) {
+        if (step_index == playhead && playhead_blink_counter_ == 0) {
             if (is_top_row) {
                 // Solid triangle touching page bottom for top row (pointing down)
                 int tri_y = 18;  // Page bottom
@@ -320,8 +299,8 @@ private:
                     gfxLine(x - width, tri_y + dy, x + width, tri_y + dy);
                 }
             } else {
-                // Solid triangle at bottom of circle for bottom row (pointing up)
-                int tri_y = y + circle_radius + 6;
+                // Solid triangle at bottom of box for bottom row (pointing up)
+                int tri_y = y + box_radius + 6;
                 for (int dy = 0; dy <= 3; dy++) {
                     int width = 3 - dy;
                     gfxLine(x - width, tri_y - dy, x + width, tri_y - dy);
@@ -329,15 +308,30 @@ private:
             }
         }
         
-        // Draw end cursor indicator (vertical line to the right of circle)
+        // Draw end cursor indicator (vertical line, thin in prob mode, thick otherwise)
         if (step_index == sequencer.end_cursor()) {
-            int line_x = x + circle_radius;
+            int line_x = x + box_radius;
+            
             if (is_top_row) {
-                // Line extending UP from top of circle to bottom of page boxes for top row
-                gfxLine(line_x, 18, line_x, y + 6);
+                // Line extending UP from top of step box to bottom of page boxes
+                if (controlling_end_cursor_) {
+                    // End cursor mode: 2px wide
+                    gfxLine(line_x - 1, 18, line_x - 1, y + 6);
+                    gfxLine(line_x, 18, line_x, y + 6);
+                } else {
+                    // Probability mode: 1px wide
+                    gfxLine(line_x, 18, line_x, y + 6);
+                }
             } else {
-                // Line extending DOWN from bottom of circle to screen bottom for bottom row
-                gfxLine(line_x, y - 6, line_x, 63);
+                // Line extending DOWN from bottom of step box to screen bottom
+                if (controlling_end_cursor_) {
+                    // End cursor mode: 2px wide
+                    gfxLine(line_x - 1, y - 6, line_x - 1, 63);
+                    gfxLine(line_x, y - 6, line_x, 63);
+                } else {
+                    // Probability mode: 1px wide
+                    gfxLine(line_x, y - 6, line_x, 63);
+                }
             }
         }
     }
@@ -362,7 +356,7 @@ private:
             int x = start_x + (col * step_spacing);
             int y = is_visual_top ? row_y_top : row_y_bottom;
             
-            DrawStep(x, y, step_index, is_visual_top, left_encoder_held_);
+            DrawStep(x, y, step_index, is_visual_top);
         }
     }
 };

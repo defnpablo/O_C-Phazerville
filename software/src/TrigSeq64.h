@@ -68,6 +68,7 @@ public:
 
   uint8_t get_step_cursor_page()        const { return step_cursor_ / PAGE_LENGTH; }
   uint8_t get_playhead_page()           const { return playhead_cursor_ / PAGE_LENGTH; }
+  uint8_t get_end_cursor_page()         const { return end_cursor_ / PAGE_LENGTH; }
 
   bool is_playhead_step_on()            const { return steps_[playhead_cursor_]; }
 
@@ -101,12 +102,16 @@ public:
   void advance_end_cursor() {
     if (end_cursor_ < static_cast<uint8_t>(MAX_STEPS - 1)) {
       ++end_cursor_;
+      // Update page if end cursor moved to a different page
+      page_cursor_ = get_end_cursor_page();
     }
   }
 
   void retreat_end_cursor() {
     if (end_cursor_ > 0) {
       --end_cursor_;
+      // Update page if end cursor moved to a different page
+      page_cursor_ = get_end_cursor_page();
     }
   }
 
@@ -118,7 +123,10 @@ public:
     uint8_t page_start = page_cursor_ * PAGE_LENGTH;
     uint8_t page_end = page_start + PAGE_LENGTH - 1;
     
-    if (step_cursor_ >= page_end) {
+    // If step cursor is outside current page, teleport to first step of current page
+    if (step_cursor_ < page_start || step_cursor_ > page_end) {
+      step_cursor_ = page_start;
+    } else if (step_cursor_ >= page_end) {
       step_cursor_ = page_start;
     } else {
       ++step_cursor_;
@@ -129,7 +137,10 @@ public:
     uint8_t page_start = page_cursor_ * PAGE_LENGTH;
     uint8_t page_end = page_start + PAGE_LENGTH - 1;
     
-    if (step_cursor_ <= page_start) {
+    // If step cursor is outside current page, teleport to last step of current page
+    if (step_cursor_ < page_start || step_cursor_ > page_end) {
+      step_cursor_ = page_end;
+    } else if (step_cursor_ <= page_start) {
       step_cursor_ = page_end;
     } else {
       --step_cursor_;
