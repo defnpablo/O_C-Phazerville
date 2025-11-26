@@ -61,15 +61,27 @@ public:
     }
 
     void OnLeftButtonLongPress() {
-      left_encoder_held_ = true;
+      if (left_encoder_held_) {
+        // If already in probability mode, exit it
+        left_encoder_held_ = false;
+      } else {
+        // Enter probability mode
+        left_encoder_held_ = true;
+      }
     }
 
     void OnLeftButtonRelease() {
-      left_encoder_held_ = false;
+      // Don't clear the flag here anymore, only on long press toggle
     }
 
     void OnRightButtonPress() {
-      sequencer.set_end_cursor_to_page_end();
+      if (left_encoder_held_) {
+        // In probability mode, reset current step to 100%
+        sequencer.reset_step_cursor_probability();
+      } else {
+        // Normal mode, set end cursor to page end
+        sequencer.set_end_cursor_to_page_end();
+      }
     }
 
     void OnUpButtonPress() {
