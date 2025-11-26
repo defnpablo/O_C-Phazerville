@@ -539,7 +539,7 @@ TEST(TrigSeq64Test, ProbabilityInitialization_AllStepsStart100Percent)
   TrigSeq64 t;
 
   for (size_t i = 0; i < TrigSeq64::MAX_STEPS; ++i) {
-    EXPECT_EQ(100, t.get_step_probability(i)) << "Step " << i << " should start at 100% probability";
+    EXPECT_FLOAT_EQ(1.0f, t.get_step_probability(i)) << "Step " << i << " should start at 100% probability";
   }
 }
 
@@ -552,55 +552,55 @@ TEST(TrigSeq64Test, ProbabilityInitialization_WithConstructor_AllStepsStart100Pe
   TrigSeq64 t(steps, 0, 0, 63, 0);
 
   for (size_t i = 0; i < TrigSeq64::MAX_STEPS; ++i) {
-    EXPECT_EQ(100, t.get_step_probability(i)) << "Step " << i << " should start at 100% probability";
+    EXPECT_FLOAT_EQ(1.0f, t.get_step_probability(i)) << "Step " << i << " should start at 100% probability";
   }
 }
 
 TEST(TrigSeq64Test, ProbabilityInitialization_WithProbabilitiesConstructor_PreservesValues)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(50);
-  probs[10] = 75;
-  probs[20] = 25;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(0.5f);
+  probs[10] = 0.7f;
+  probs[20] = 0.3f;
 
   TrigSeq64 t(steps, 0, 0, 63, 0, probs);
 
-  EXPECT_EQ(75, t.get_step_probability(10));
-  EXPECT_EQ(25, t.get_step_probability(20));
-  EXPECT_EQ(50, t.get_step_probability(0));
-  EXPECT_EQ(50, t.get_step_probability(63));
+  EXPECT_FLOAT_EQ(0.7f, t.get_step_probability(10));
+  EXPECT_FLOAT_EQ(0.3f, t.get_step_probability(20));
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(0));
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(63));
 }
 
 // Probability getter tests
 TEST(TrigSeq64Test, GetStepCursorProbability_ReturnsCorrectValue)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[5] = 55;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[5] = 0.6f;
 
   TrigSeq64 t(steps, 0, 5, 63, 0, probs);
 
-  EXPECT_EQ(55, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.6f, t.get_step_cursor_probability());
 }
 
 TEST(TrigSeq64Test, GetStepProbability_VariousSteps_ReturnsCorrectValues)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[0] = 5;
-  probs[15] = 50;
-  probs[32] = 95;
-  probs[63] = 20;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[0] = 0.1f;
+  probs[15] = 0.5f;
+  probs[32] = 0.9f;
+  probs[63] = 0.2f;
 
   TrigSeq64 t(steps, 0, 0, 63, 0, probs);
 
-  EXPECT_EQ(5, t.get_step_probability(0));
-  EXPECT_EQ(50, t.get_step_probability(15));
-  EXPECT_EQ(95, t.get_step_probability(32));
-  EXPECT_EQ(20, t.get_step_probability(63));
+  EXPECT_FLOAT_EQ(0.1f, t.get_step_probability(0));
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(15));
+  EXPECT_FLOAT_EQ(0.9f, t.get_step_probability(32));
+  EXPECT_FLOAT_EQ(0.2f, t.get_step_probability(63));
 }
 
 // Increase probability tests
@@ -609,196 +609,187 @@ TEST(TrigSeq64Test, IncreaseProbability_From100_StaysAt100)
   TrigSeq64 t;  // All steps start at 100%
 
   t.increase_step_cursor_probability();
-  EXPECT_EQ(100, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(1.0f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, IncreaseProbability_From50_GoesTo55)
+TEST(TrigSeq64Test, IncreaseProbability_From50_GoesTo60)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[0] = 50;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[0] = 0.5f;
 
   TrigSeq64 t(steps, 0, 0, 63, 0, probs);
 
   t.increase_step_cursor_probability();
-  EXPECT_EQ(55, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.6f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, IncreaseProbability_From95_GoesTo100)
+TEST(TrigSeq64Test, IncreaseProbability_From90_GoesTo100)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[10] = 95;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[10] = 0.9f;
 
   TrigSeq64 t(steps, 0, 10, 63, 0, probs);
 
   t.increase_step_cursor_probability();
-  EXPECT_EQ(100, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(1.0f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, IncreaseProbability_Multiple_IncrementsBy5Each)
+TEST(TrigSeq64Test, IncreaseProbability_Multiple_IncrementsBy10Each)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[5] = 80;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[5] = 0.7f;
 
   TrigSeq64 t(steps, 0, 5, 63, 0, probs);
 
   t.increase_step_cursor_probability();
-  EXPECT_EQ(85, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.8f, t.get_step_cursor_probability());
   
   t.increase_step_cursor_probability();
-  EXPECT_EQ(90, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.9f, t.get_step_cursor_probability());
   
   t.increase_step_cursor_probability();
-  EXPECT_EQ(95, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(1.0f, t.get_step_cursor_probability());
   
   t.increase_step_cursor_probability();
-  EXPECT_EQ(100, t.get_step_cursor_probability());
-  
-  t.increase_step_cursor_probability();
-  EXPECT_EQ(100, t.get_step_cursor_probability());  // Stays at max
+  EXPECT_FLOAT_EQ(1.0f, t.get_step_cursor_probability());  // Stays at max
 }
 
 TEST(TrigSeq64Test, IncreaseProbability_OnlyAffectsStepCursor)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(50);
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(0.5f);
 
   TrigSeq64 t(steps, 0, 10, 63, 0, probs);
 
   t.increase_step_cursor_probability();
   
-  EXPECT_EQ(55, t.get_step_probability(10));  // Step cursor changed
-  EXPECT_EQ(50, t.get_step_probability(9));   // Others unchanged
-  EXPECT_EQ(50, t.get_step_probability(11));
-  EXPECT_EQ(50, t.get_step_probability(0));
-  EXPECT_EQ(50, t.get_step_probability(63));
+  EXPECT_FLOAT_EQ(0.6f, t.get_step_probability(10));  // Step cursor changed
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(9));   // Others unchanged
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(11));
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(0));
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_probability(63));
 }
 
 // Decrease probability tests
-TEST(TrigSeq64Test, DecreaseProbability_From100_GoesTo95)
+TEST(TrigSeq64Test, DecreaseProbability_From100_GoesTo90)
 {
   TrigSeq64 t;  // All steps start at 100%
 
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(95, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.9f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, DecreaseProbability_From50_GoesTo45)
+TEST(TrigSeq64Test, DecreaseProbability_From50_GoesTo40)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[0] = 50;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[0] = 0.5f;
 
   TrigSeq64 t(steps, 0, 0, 63, 0, probs);
 
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(45, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.4f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, DecreaseProbability_From10_GoesTo5)
+TEST(TrigSeq64Test, DecreaseProbability_From20_GoesTo10)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[20] = 10;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[20] = 0.2f;
 
   TrigSeq64 t(steps, 0, 20, 63, 0, probs);
 
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(5, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.1f, t.get_step_cursor_probability());
 }
 
-TEST(TrigSeq64Test, DecreaseProbability_From5_StaysAt5)
+TEST(TrigSeq64Test, DecreaseProbability_From10_StaysAt10)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[0] = 5;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[0] = 0.1f;
 
   TrigSeq64 t(steps, 0, 0, 63, 0, probs);
 
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(5, t.get_step_cursor_probability());  // Stays at minimum
+  EXPECT_FLOAT_EQ(0.1f, t.get_step_cursor_probability());  // Stays at minimum
 }
 
-TEST(TrigSeq64Test, DecreaseProbability_Multiple_DecrementsBy5Each)
+TEST(TrigSeq64Test, DecreaseProbability_Multiple_DecrementsBy10Each)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[15] = 30;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[15] = 0.4f;
 
   TrigSeq64 t(steps, 0, 15, 63, 0, probs);
 
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(25, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.3f, t.get_step_cursor_probability());
   
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(20, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.2f, t.get_step_cursor_probability());
   
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(15, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.1f, t.get_step_cursor_probability());
   
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(10, t.get_step_cursor_probability());
-  
-  t.decrease_step_cursor_probability();
-  EXPECT_EQ(5, t.get_step_cursor_probability());
-  
-  t.decrease_step_cursor_probability();
-  EXPECT_EQ(5, t.get_step_cursor_probability());  // Stays at min
+  EXPECT_FLOAT_EQ(0.1f, t.get_step_cursor_probability());  // Stays at min
 }
 
 TEST(TrigSeq64Test, DecreaseProbability_OnlyAffectsStepCursor)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(80);
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(0.8f);
 
   TrigSeq64 t(steps, 0, 25, 63, 0, probs);
 
   t.decrease_step_cursor_probability();
   
-  EXPECT_EQ(75, t.get_step_probability(25));  // Step cursor changed
-  EXPECT_EQ(80, t.get_step_probability(24));  // Others unchanged
-  EXPECT_EQ(80, t.get_step_probability(26));
-  EXPECT_EQ(80, t.get_step_probability(0));
-  EXPECT_EQ(80, t.get_step_probability(63));
+  EXPECT_FLOAT_EQ(0.7f, t.get_step_probability(25));  // Step cursor changed
+  EXPECT_FLOAT_EQ(0.8f, t.get_step_probability(24));  // Others unchanged
+  EXPECT_FLOAT_EQ(0.8f, t.get_step_probability(26));
+  EXPECT_FLOAT_EQ(0.8f, t.get_step_probability(0));
+  EXPECT_FLOAT_EQ(0.8f, t.get_step_probability(63));
 }
 
 // Combined increase/decrease tests
 TEST(TrigSeq64Test, IncreaseDecreaseProbability_RoundTrip_ReturnsToOriginal)
 {
   std::bitset<TrigSeq64::MAX_STEPS> steps;
-  std::array<uint8_t, TrigSeq64::MAX_STEPS> probs;
-  probs.fill(100);
-  probs[5] = 60;
+  std::array<float, TrigSeq64::MAX_STEPS> probs;
+  probs.fill(1.0f);
+  probs[5] = 0.5f;
 
   TrigSeq64 t(steps, 0, 5, 63, 0, probs);
 
   t.increase_step_cursor_probability();
-  EXPECT_EQ(65, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.6f, t.get_step_cursor_probability());
   
   t.increase_step_cursor_probability();
-  EXPECT_EQ(70, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.7f, t.get_step_cursor_probability());
   
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(65, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.6f, t.get_step_cursor_probability());
   
   t.decrease_step_cursor_probability();
-  EXPECT_EQ(60, t.get_step_cursor_probability());
+  EXPECT_FLOAT_EQ(0.5f, t.get_step_cursor_probability());
 }
 
 TEST(TrigSeq64Test, Probability_Constants_HaveCorrectValues)
 {
-  EXPECT_EQ(5, TrigSeq64::min_probability());
-  EXPECT_EQ(100, TrigSeq64::max_probability());
-  EXPECT_EQ(5, TrigSeq64::probability_increment());
+  EXPECT_FLOAT_EQ(0.1f, TrigSeq64::min_probability());
+  EXPECT_FLOAT_EQ(1.0f, TrigSeq64::max_probability());
+  EXPECT_FLOAT_EQ(0.1f, TrigSeq64::probability_increment());
 }

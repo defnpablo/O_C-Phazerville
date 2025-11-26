@@ -71,6 +71,7 @@ namespace menu = OC::menu;
 #include "APP_SCALEEDITOR.h"
 #include "APP_WAVEFORMEDITOR.h"
 #include "APP_PONGGAME.h"
+#include "APP_TRIGSEQ64.h"
 #include "APP_Backup.h"
 #include "APP_SETTINGS.h"
 
@@ -161,6 +162,7 @@ static constexpr OC::App available_apps[] = {
   #ifdef ENABLE_APP_NEURAL_NETWORK
   DECLARE_APP('N','N', "Neural Net", NeuralNetwork),
   #endif
+  DECLARE_APP('T','S', "TrigSeq64", TrigSeq64),
   DECLARE_APP('S','C', "Scale Editor", SCALEEDITOR),
   DECLARE_APP('W','A', "Waveform Editor", WaveformEditor),
   #ifdef ENABLE_APP_PONG
@@ -253,7 +255,7 @@ DMAMEM GlobalSettingsStorage global_settings_storage;
 DMAMEM AppData app_settings;
 DMAMEM AppDataStorage app_data_storage;
 
-static constexpr int DEFAULT_APP_INDEX = 1;
+static constexpr int DEFAULT_APP_INDEX = 3;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
 
 FLASHMEM
@@ -711,6 +713,9 @@ void Init(bool reset_settings) {
     SERIAL_PRINTLN("App id %02x not found, using default!", global_settings.current_app_id);
     current_app_index = DEFAULT_APP_INDEX;
   }
+
+  // Force TrigSeq64 as startup app
+  current_app_index = DEFAULT_APP_INDEX;
 
   SERIAL_PRINTLN("Encoder acceleration: %s", global_settings.encoders_enable_acceleration ? "enabled" : "disabled");
   ui.encoders_enable_acceleration(global_settings.encoders_enable_acceleration);

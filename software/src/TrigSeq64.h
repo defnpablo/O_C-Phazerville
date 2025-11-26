@@ -10,9 +10,9 @@ public:
   static constexpr std::size_t PAGE_LENGTH = 16;
   static constexpr std::size_t PAGE_COUNT  = 4;
   
-  static uint8_t min_probability() { return 5; }
-  static uint8_t max_probability() { return 100; }
-  static uint8_t probability_increment() { return 5; }
+  static float min_probability() { return 0.1f; }
+  static float max_probability() { return 1.0f; }
+  static float probability_increment() { return 0.1f; }
 
   TrigSeq64()
   : steps_()
@@ -43,7 +43,7 @@ public:
             uint8_t step_cursor,
             uint8_t end_cursor,
             uint8_t page_cursor,
-            const std::array<uint8_t, MAX_STEPS>& probabilities)
+            const std::array<float, MAX_STEPS>& probabilities)
   : steps_(steps)
   , page_cursor_(page_cursor)
   , step_cursor_(step_cursor)
@@ -58,11 +58,11 @@ public:
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
   
-  uint8_t get_step_probability(uint8_t step_index) const {
+  float get_step_probability(uint8_t step_index) const {
     return probabilities_[step_index];
   }
   
-  uint8_t get_step_cursor_probability() const {
+  float get_step_cursor_probability() const {
     return probabilities_[step_cursor_];
   }
 
@@ -163,6 +163,10 @@ public:
   void decrease_step_cursor_probability() {
     if (probabilities_[step_cursor_] > min_probability()) {
       probabilities_[step_cursor_] -= probability_increment();
+      // Clamp to minimum to avoid floating point precision issues
+      if (probabilities_[step_cursor_] < min_probability()) {
+        probabilities_[step_cursor_] = min_probability();
+      }
     }
   }
 
@@ -172,5 +176,5 @@ private:
   uint8_t step_cursor_;
   uint8_t playhead_cursor_;
   uint8_t end_cursor_;
-  std::array<uint8_t, MAX_STEPS> probabilities_;
+  std::array<float, MAX_STEPS> probabilities_;
 };

@@ -61,7 +61,11 @@ public:
     }
 
     void OnLeftButtonLongPress() {
-      sequencer.clear_page();
+      left_encoder_held_ = true;
+    }
+
+    void OnLeftButtonRelease() {
+      left_encoder_held_ = false;
     }
 
     void OnRightButtonPress() {
@@ -85,10 +89,20 @@ public:
     }
 
     void OnLeftEncoderMove(int direction) {
-      if (direction > 0) {
-        sequencer.advance_step_cursor();
+      if (left_encoder_held_) {
+        // Probability editing mode
+        if (direction > 0) {
+          sequencer.increase_step_cursor_probability();
+        } else {
+          sequencer.decrease_step_cursor_probability();
+        }
       } else {
-        sequencer.retreat_step_cursor();
+        // Normal cursor movement
+        if (direction > 0) {
+          sequencer.advance_step_cursor();
+        } else {
+          sequencer.retreat_step_cursor();
+        }
       }
     }
 
@@ -102,6 +116,7 @@ public:
 
 private:
     TrigSeq64 sequencer;
+    bool left_encoder_held_ = false;
 
     size_t SaveToStorage(void *storage) {
         uint8_t *data = static_cast<uint8_t*>(storage);
@@ -115,6 +130,13 @@ private:
         data[offset++] = sequencer.step_cursor();
         data[offset++] = sequencer.playhead_cursor();
         data[offset++] = sequencer.end_cursor();
+        
+        // Save probabilities array
+        for (size_t i = 0; i < TrigSeq64::MAX_STEPS; ++i) {
+            float prob = sequencer.get_step_probability(i);
+            memcpy(data + offset, &prob, sizeof(float));
+            offset += sizeof(float);
+        }
         
         return offset;
     }
@@ -133,7 +155,16 @@ private:
         uint8_t playhead_cursor = data[offset++];
         uint8_t end_cursor = data[offset++];
         
-        sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor);
+        // Restore probabilities array
+        std::array<float, TrigSeq64::MAX_STEPS> probabilities;
+        for (size_t i = 0; i < TrigSeq64::MAX_STEPS; ++i) {
+            float prob;
+            memcpy(&prob, data + offset, sizeof(float));
+            offset += sizeof(float);
+            probabilities[i] = prob;
+        }
+        
+        sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor, probabilities);
         
         return offset;
     }
@@ -202,27 +233,54 @@ private:
         }
     }
     
-    void DrawStep(int x, int y, int step_index, bool is_top_row) {
+    void DrawStep(int x, int y, int step_index, bool is_top_row, bool show_probability) {
         const int circle_radius = 6;
         const int inner_radius = 3;
         
-        // Draw circle outline
-        gfxCircle(x, y, circle_radius);
-        
-        // Fill inner circle if step is on
-        if (sequencer.steps()[step_index]) {
-            // Fill smaller disk using horizontal lines
-            for (int dy = -inner_radius; dy <= inner_radius; dy++) {
-                int dx = static_cast<int>(sqrt(inner_radius * inner_radius - dy * dy));
-                gfxLine(x - dx, y + dy, x + dx, y + dy);
+        // If in probability editing mode, show compact decimal instead of circle
+        if (show_probability) {
+            float prob = sequencer.get_step_probability(step_index);
+            if (prob >= 0.999f) {
+                // 100%: just show "1"
+                gfxPrint(x - 2, y - 3, "1");
+            } else {
+                // <100%: show .1, .2, .3, etc
+                int tenths = static_cast<int>(prob * 10.0f + 0.5f);
+                gfxPrint(x - 5, y - 3, ".");
+                gfxPrint(x - 2, y - 3, tenths);
+            }
+        } else {
+            // Draw circle outline
+            gfxCircle(x, y, circle_radius);
+            
+            // Fill based on step state and probability
+            if (sequencer.steps()[step_index]) {
+                float prob = sequencer.get_step_probability(step_index);
+                
+                if (prob >= 0.999f) {  // Close to 1.0 (100%)
+                    // 100% probability: fill entire circle (solid)
+                    for (int dy = -circle_radius; dy <= circle_radius; dy++) {
+                        int dx = static_cast<int>(sqrt(circle_radius * circle_radius - dy * dy));
+                        gfxLine(x - dx, y + dy, x + dx, y + dy);
+                    }
+                } else {
+                    // Less than 100%: fill inner circle only (ring)
+                    for (int dy = -inner_radius; dy <= inner_radius; dy++) {
+                        int dx = static_cast<int>(sqrt(inner_radius * inner_radius - dy * dy));
+                        gfxLine(x - dx, y + dy, x + dx, y + dy);
+                    }
+                }
+            }
+            // else: hollow circle (step is off)
+            
+            // Draw step cursor indicator (square around circle)
+            if (step_index == sequencer.step_cursor()) {
+                gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
+                        (circle_radius + 1) * 2, (circle_radius + 1) * 2);
             }
         }
         
-        // Draw step cursor indicator (square around circle)
-        if (step_index == sequencer.step_cursor()) {
-            gfxFrame(x - circle_radius - 1, y - circle_radius - 1, 
-                    (circle_radius + 1) * 2, (circle_radius + 1) * 2);
-        }
+        // Always draw playhead and end cursor indicators (even in probability mode)
         
         // Draw playhead indicator (solid triangle)
         uint8_t playhead = sequencer.playhead_cursor();
@@ -277,7 +335,7 @@ private:
             int x = start_x + (col * step_spacing);
             int y = is_visual_top ? row_y_top : row_y_bottom;
             
-            DrawStep(x, y, step_index, is_visual_top);
+            DrawStep(x, y, step_index, is_visual_top, left_encoder_held_);
         }
     }
 };
@@ -291,7 +349,7 @@ void TrigSeq64_init() {
 
 // Storage: save sequencer state
 static constexpr size_t TrigSeq64_storageSize() {
-    return sizeof(uint64_t) + 4 * sizeof(uint8_t);
+    return sizeof(uint64_t) + 4 * sizeof(uint8_t) + TrigSeq64::MAX_STEPS * sizeof(float);
 }
 
 size_t TrigSeq64_save(void *storage) {
@@ -338,6 +396,7 @@ void TrigSeq64_handleButtonEvent(const UI::Event &event) {
     case UI::EVENT_BUTTON_PRESS: { // when button is released
         switch (event.control) {
         case OC::CONTROL_BUTTON_L:
+          TrigSeq64_instance.OnLeftButtonRelease();
           TrigSeq64_instance.OnLeftButtonPress();
           break;
         case OC::CONTROL_BUTTON_R:
