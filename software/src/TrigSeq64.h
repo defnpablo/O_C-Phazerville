@@ -170,6 +170,10 @@ public:
     }
   }
 
+  void reset_step_cursor_probability() {
+    probabilities_[step_cursor_] = max_probability();
+  }
+
 private:
   std::bitset<MAX_STEPS> steps_;
   uint8_t page_cursor_;
