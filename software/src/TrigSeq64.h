@@ -19,6 +19,7 @@ public:
   , page_cursor_(0)
   , step_cursor_(0)
   , playhead_cursor_(0)
+  , start_cursor_(0)
   , end_cursor_(15)
   {
     probabilities_.fill(max_probability());
@@ -27,12 +28,14 @@ public:
   TrigSeq64(const std::bitset<MAX_STEPS>& steps,
             uint8_t playhead_cursor,
             uint8_t step_cursor,
+            uint8_t start_cursor,
             uint8_t end_cursor,
             uint8_t page_cursor)
   : steps_(steps)
   , page_cursor_(page_cursor)
   , step_cursor_(step_cursor)
   , playhead_cursor_(playhead_cursor)
+  , start_cursor_(start_cursor)
   , end_cursor_(end_cursor)
   {
     probabilities_.fill(max_probability());
@@ -41,6 +44,7 @@ public:
   TrigSeq64(const std::bitset<MAX_STEPS>& steps,
             uint8_t playhead_cursor,
             uint8_t step_cursor,
+            uint8_t start_cursor,
             uint8_t end_cursor,
             uint8_t page_cursor,
             const std::array<float, MAX_STEPS>& probabilities)
@@ -48,6 +52,7 @@ public:
   , page_cursor_(page_cursor)
   , step_cursor_(step_cursor)
   , playhead_cursor_(playhead_cursor)
+  , start_cursor_(start_cursor)
   , end_cursor_(end_cursor)
   , probabilities_(probabilities)
   {}
@@ -56,6 +61,7 @@ public:
   uint8_t page_cursor()                 const { return page_cursor_; }
   uint8_t step_cursor()                 const { return step_cursor_; }
   uint8_t playhead_cursor()             const { return playhead_cursor_; }
+  uint8_t start_cursor()                const { return start_cursor_; }
   uint8_t end_cursor()                  const { return end_cursor_; }
   
   float get_step_probability(uint8_t step_index) const {
@@ -68,12 +74,13 @@ public:
 
   uint8_t get_step_cursor_page()        const { return step_cursor_ / PAGE_LENGTH; }
   uint8_t get_playhead_page()           const { return playhead_cursor_ / PAGE_LENGTH; }
+  uint8_t get_start_cursor_page()       const { return start_cursor_ / PAGE_LENGTH; }
   uint8_t get_end_cursor_page()         const { return end_cursor_ / PAGE_LENGTH; }
 
   bool is_playhead_step_on()            const { return steps_[playhead_cursor_]; }
 
   void reset_playhead() {
-    playhead_cursor_ = 0;
+    playhead_cursor_ = start_cursor_;
   }
 
   void advance_playhead() {
@@ -97,6 +104,26 @@ public:
     } else {
       --page_cursor_;
     }
+  }
+
+  void advance_start_cursor() {
+    if (start_cursor_ < end_cursor_) {
+      ++start_cursor_;
+      // Update page if start cursor moved to a different page
+      page_cursor_ = get_start_cursor_page();
+    }
+  }
+
+  void retreat_start_cursor() {
+    if (start_cursor_ > 0) {
+      --start_cursor_;
+      // Update page if start cursor moved to a different page
+      page_cursor_ = get_start_cursor_page();
+    }
+  }
+
+  void reset_start_cursor_to_page_start() {
+    start_cursor_ = page_cursor_ * PAGE_LENGTH;
   }
 
   void advance_end_cursor() {
@@ -204,6 +231,7 @@ private:
   uint8_t page_cursor_;
   uint8_t step_cursor_;
   uint8_t playhead_cursor_;
+  uint8_t start_cursor_;
   uint8_t end_cursor_;
   std::array<float, MAX_STEPS> probabilities_;
 };

@@ -64,8 +64,8 @@ public:
       DrawPages();
       DrawSteps();
       
-      // Draw border around page tab container when in end of seq mode
-      if (controlling_end_cursor_) {
+      // Draw border around page tab container when NOT in probability mode
+      if (cursor_mode_ != CursorMode::PROBABILITY) {
         gfxFrame(0, 0, 128, 18);  // Only around the page tabs area
       }
     }
@@ -84,8 +84,18 @@ public:
     }
 
     void OnLeftButtonLongPress() {
-      // Toggle between controlling probability and controlling end cursor
-      controlling_end_cursor_ = !controlling_end_cursor_;
+      // Cycle through modes: END_OF_SEQ -> START_OF_SEQ -> PROBABILITY -> END_OF_SEQ
+      switch (cursor_mode_) {
+        case CursorMode::END_OF_SEQ:
+          cursor_mode_ = CursorMode::START_OF_SEQ;
+          break;
+        case CursorMode::START_OF_SEQ:
+          cursor_mode_ = CursorMode::PROBABILITY;
+          break;
+        case CursorMode::PROBABILITY:
+          cursor_mode_ = CursorMode::END_OF_SEQ;
+          break;
+      }
     }
 
     void OnLeftButtonRelease() {
@@ -93,12 +103,19 @@ public:
     }
 
     void OnRightButtonPress() {
-      if (controlling_end_cursor_) {
-        // End cursor mode: set end cursor to page end
-        sequencer.set_end_cursor_to_page_end();
-      } else {
-        // Probability mode: reset current step to 100%
-        sequencer.reset_step_cursor_probability();
+      switch (cursor_mode_) {
+        case CursorMode::END_OF_SEQ:
+          // End cursor mode: set end cursor to page end
+          sequencer.set_end_cursor_to_page_end();
+          break;
+        case CursorMode::START_OF_SEQ:
+          // Start cursor mode: reset start cursor to page start
+          sequencer.reset_start_cursor_to_page_start();
+          break;
+        case CursorMode::PROBABILITY:
+          // Probability mode: reset current step to 100%
+          sequencer.reset_step_cursor_probability();
+          break;
       }
     }
 
@@ -107,12 +124,12 @@ public:
     }
 
     void OnUpButtonLongPress() {
-      if (controlling_end_cursor_) {
-        // End cursor mode: clear page
-        sequencer.clear_page();
-      } else {
+      if (cursor_mode_ == CursorMode::PROBABILITY) {
         // Probability mode: set current page probabilities to 100%
         sequencer.set_page_probabilities_max();
+      } else {
+        // End/Start cursor modes: clear page
+        sequencer.clear_page();
       }
     }
 
@@ -121,12 +138,12 @@ public:
     }
 
     void OnDownButtonLongPress() {
-      if (controlling_end_cursor_) {
-        // End cursor mode: fill page
-        sequencer.fill_page();
-      } else {
+      if (cursor_mode_ == CursorMode::PROBABILITY) {
         // Probability mode: set current page probabilities to 10%
         sequencer.set_page_probabilities_min();
+      } else {
+        // End/Start cursor modes: fill page
+        sequencer.fill_page();
       }
     }
 
@@ -140,31 +157,53 @@ public:
     }
 
     void OnRightEncoderMove(int direction) {
-      if (controlling_end_cursor_) {
-        // End cursor mode: move end cursor
-        if (direction > 0) {
-          sequencer.advance_end_cursor();
-        } else {
-          sequencer.retreat_end_cursor();
-        }
-      } else {
-        // Probability mode: adjust probability with right encoder
-        if (direction > 0) {
-          sequencer.increase_step_cursor_probability();
-        } else {
-          sequencer.decrease_step_cursor_probability();
-        }
+      switch (cursor_mode_) {
+        case CursorMode::END_OF_SEQ:
+          // End cursor mode: move end cursor
+          if (direction > 0) {
+            sequencer.advance_end_cursor();
+          } else {
+            sequencer.retreat_end_cursor();
+          }
+          break;
+        case CursorMode::START_OF_SEQ:
+          // Start cursor mode: move start cursor
+          if (direction > 0) {
+            sequencer.advance_start_cursor();
+          } else {
+            sequencer.retreat_start_cursor();
+          }
+          break;
+        case CursorMode::PROBABILITY:
+          // Probability mode: adjust probability with right encoder
+          if (direction > 0) {
+            sequencer.increase_step_cursor_probability();
+          } else {
+            sequencer.decrease_step_cursor_probability();
+          }
+          break;
       }
     }
 
 private:
     TrigSeq64 sequencer;
-    bool controlling_end_cursor_ = true;  // false = adjust probability, true = move end cursor
+    
+    enum class CursorMode {
+        END_OF_SEQ,
+        START_OF_SEQ,
+        PROBABILITY
+    };
+    CursorMode cursor_mode_ = CursorMode::END_OF_SEQ;
+    
     uint8_t playhead_blink_counter_ = 0;  // Counter for playhead blink effect
 
+    static constexpr uint8_t STORAGE_VERSION = 0xA2;  // Magic + version to detect old format
+    
     size_t SaveToStorage(void *storage) {
         uint8_t *data = static_cast<uint8_t*>(storage);
         size_t offset = 0;
+        
+        data[offset++] = STORAGE_VERSION;
         
         uint64_t steps_value = sequencer.steps().to_ullong();
         memcpy(data + offset, &steps_value, sizeof(steps_value));
@@ -174,6 +213,7 @@ private:
         data[offset++] = sequencer.step_cursor();
         data[offset++] = sequencer.playhead_cursor();
         data[offset++] = sequencer.end_cursor();
+        data[offset++] = sequencer.start_cursor();
         
         // Save probabilities array
         for (size_t i = 0; i < TrigSeq64::MAX_STEPS; ++i) {
@@ -189,6 +229,13 @@ private:
         const uint8_t *data = static_cast<const uint8_t*>(storage);
         size_t offset = 0;
         
+        uint8_t version = data[offset++];
+        if (version != STORAGE_VERSION) {
+            // Old or incompatible format, use defaults
+            sequencer = TrigSeq64();
+            return 0;
+        }
+        
         uint64_t steps_value;
         memcpy(&steps_value, data + offset, sizeof(steps_value));
         offset += sizeof(steps_value);
@@ -198,6 +245,7 @@ private:
         uint8_t step_cursor = data[offset++];
         uint8_t playhead_cursor = data[offset++];
         uint8_t end_cursor = data[offset++];
+        uint8_t start_cursor = data[offset++];
         
         // Restore probabilities array
         std::array<float, TrigSeq64::MAX_STEPS> probabilities;
@@ -208,14 +256,14 @@ private:
             probabilities[i] = prob;
         }
         
-        sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, end_cursor, page_cursor, probabilities);
+        sequencer = TrigSeq64(steps, playhead_cursor, step_cursor, start_cursor, end_cursor, page_cursor, probabilities);
         
         return offset;
     }
 
     void DrawPlayheadIndicator(int x, int page_y, int page_width) {
-        // Right-pointing triangle ►
-        int tri_x = x + page_width - 14;
+        // Right-pointing triangle ► positioned between number and ritornello
+        int tri_x = x + page_width - 14;  // Consistent offset from right edge
         int tri_y = page_y + 8;
         gfxLine(tri_x, tri_y - 4, tri_x, tri_y + 4);
         gfxLine(tri_x, tri_y - 4, tri_x + 4, tri_y);
@@ -223,13 +271,22 @@ private:
     }
     
     void DrawRitornello(int x, int page_y, int page_width) {
-        // Ritornello: two dots and double bar
-        int rit_x = x + page_width - 8;
+        // Vertical rectangle end marker - symmetric with start indicator
+        int rit_x = x + page_width - 6;  // 2px from right edge (mirroring start at x+2)
         int rit_y = page_y + 8;
-        gfxPixel(rit_x, rit_y - 3);
-        gfxPixel(rit_x, rit_y + 3);
-        gfxLine(rit_x + 2, rit_y - 5, rit_x + 2, rit_y + 5);
-        gfxLine(rit_x + 4, rit_y - 5, rit_x + 4, rit_y + 5);
+        
+        // Draw outline (4px wide, 13px tall - same as start indicator)
+        gfxLine(rit_x, rit_y - 7, rit_x, rit_y + 5);      // Left vertical
+        gfxLine(rit_x + 3, rit_y - 7, rit_x + 3, rit_y + 5);  // Right vertical
+        gfxLine(rit_x, rit_y - 7, rit_x + 3, rit_y - 7);  // Top horizontal
+        gfxLine(rit_x, rit_y + 5, rit_x + 3, rit_y + 5);  // Bottom horizontal
+        
+        // Fill interior when in END_OF_SEQ mode (same size as outline)
+        if (cursor_mode_ == CursorMode::END_OF_SEQ) {
+            for (int fy = rit_y - 6; fy <= rit_y + 4; fy++) {
+                gfxLine(rit_x + 1, fy, rit_x + 2, fy);
+            }
+        }
     }
 
     void DrawPages() {
@@ -248,9 +305,28 @@ private:
                 gfxLine(x, page_y, x, page_y + page_height - 1);  // Divider
             }
             
-            // Draw page label
-            gfxPrint(x + 2, page_y + 4, "P");
-            gfxPrint(page + 1);
+            // Draw start cursor indicator on the page where start cursor is
+            uint8_t start_page = sequencer.start_cursor() / TrigSeq64::PAGE_LENGTH;
+            if (page == start_page) {
+                int start_x = x + 2;
+                int start_y = page_y + 8;
+                // Draw vertical rectangle on the left
+                gfxLine(start_x, start_y - 7, start_x, start_y + 5);      // Left vertical
+                gfxLine(start_x + 3, start_y - 7, start_x + 3, start_y + 5);  // Right vertical
+                gfxLine(start_x, start_y - 7, start_x + 3, start_y - 7);  // Top horizontal
+                gfxLine(start_x, start_y + 5, start_x + 3, start_y + 5);  // Bottom horizontal
+                
+                // Fill when in START_OF_SEQ mode
+                if (cursor_mode_ == CursorMode::START_OF_SEQ) {
+                    for (int fy = start_y - 6; fy <= start_y + 4; fy++) {
+                        gfxLine(start_x + 1, fy, start_x + 2, fy);
+                    }
+                }
+            }
+            
+            // Draw page label (just the number, centered in tab)
+            int num_x = x + (page_width / 2) - 7;  // Center the single digit
+            gfxPrint(num_x, page_y + 5, page + 1);
             
             // Draw playhead indicator if playhead is on this page
             if (page == sequencer.get_playhead_page()) {
@@ -263,23 +339,18 @@ private:
                 DrawRitornello(x, page_y, page_width);
             }
 
-            // Invert if this is the selected page (page_cursor)
+            // Draw selection indicator for selected page (page_cursor)
             if (page == sequencer.page_cursor()) {
-                // Adjust inversion based on which borders exist
-                int invert_x = (page == 0) ? x : x + 1;
-                int invert_width = page_width;
-                if (page == 0) {
-                    // First page: no left border, just avoid right edge
-                    invert_width = page_width;
-                } else if (page == TrigSeq64::PAGE_COUNT - 1) {
-                    // Last page: has left border, no right border
-                    invert_width -= 1;
-                } else {
-                    // Middle pages: has left border, avoid right edge
-                    invert_width -= 1;
-                }
+                // Draw a thin white rectangle centered at the top of the selected tab
+                int rect_width = 12;  // Narrow centered rectangle
+                int rect_height = 2;  // Thinner
+                int rect_x = x + (page_width - rect_width) / 2;  // Center it
+                int rect_y = page_y;  // At the top
                 
-                gfxInvert(invert_x, page_y, invert_width, page_height - 1);
+                // Fill the rectangle
+                for (int i = 0; i < rect_height; i++) {
+                    gfxLine(rect_x, rect_y + i, rect_x + rect_width - 1, rect_y + i);
+                }
             }
         }
     }
@@ -335,28 +406,55 @@ private:
             }
         }
         
-        // Draw end cursor indicator (vertical line, thin in prob mode, thick otherwise)
+        // Draw end cursor indicator (vertical line, thick in END_OF_SEQ mode)
         if (step_index == sequencer.end_cursor()) {
             int line_x = x + box_radius;
             
             if (is_top_row) {
                 // Line extending UP from top of step box to bottom of page boxes
-                if (controlling_end_cursor_) {
+                if (cursor_mode_ == CursorMode::END_OF_SEQ) {
                     // End cursor mode: 2px wide
                     gfxLine(line_x - 1, 18, line_x - 1, y + 6);
                     gfxLine(line_x, 18, line_x, y + 6);
                 } else {
-                    // Probability mode: 1px wide
+                    // Other modes: 1px wide
                     gfxLine(line_x, 18, line_x, y + 6);
                 }
             } else {
                 // Line extending DOWN from bottom of step box to screen bottom
-                if (controlling_end_cursor_) {
+                if (cursor_mode_ == CursorMode::END_OF_SEQ) {
                     // End cursor mode: 2px wide
                     gfxLine(line_x - 1, y - 6, line_x - 1, 63);
                     gfxLine(line_x, y - 6, line_x, 63);
                 } else {
-                    // Probability mode: 1px wide
+                    // Other modes: 1px wide
+                    gfxLine(line_x, y - 6, line_x, 63);
+                }
+            }
+        }
+        
+        // Draw start cursor indicator (vertical line on the LEFT of the step, thick in START_OF_SEQ mode)
+        if (step_index == sequencer.start_cursor()) {
+            int line_x = x - box_radius - 1;
+            
+            if (is_top_row) {
+                // Line extending UP from top of step box to bottom of page boxes
+                if (cursor_mode_ == CursorMode::START_OF_SEQ) {
+                    // Start cursor mode: 2px wide (expand left like end cursor)
+                    gfxLine(line_x - 1, 18, line_x - 1, y + 6);
+                    gfxLine(line_x, 18, line_x, y + 6);
+                } else {
+                    // Other modes: 1px wide
+                    gfxLine(line_x, 18, line_x, y + 6);
+                }
+            } else {
+                // Line extending DOWN from bottom of step box to screen bottom
+                if (cursor_mode_ == CursorMode::START_OF_SEQ) {
+                    // Start cursor mode: 2px wide (expand left like end cursor)
+                    gfxLine(line_x - 1, y - 6, line_x - 1, 63);
+                    gfxLine(line_x, y - 6, line_x, 63);
+                } else {
+                    // Other modes: 1px wide
                     gfxLine(line_x, y - 6, line_x, 63);
                 }
             }
