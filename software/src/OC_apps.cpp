@@ -255,7 +255,7 @@ DMAMEM GlobalSettingsStorage global_settings_storage;
 DMAMEM AppData app_settings;
 DMAMEM AppDataStorage app_data_storage;
 
-static constexpr int DEFAULT_APP_INDEX = 3;
+static constexpr int DEFAULT_APP_INDEX = 1;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
 
 FLASHMEM
