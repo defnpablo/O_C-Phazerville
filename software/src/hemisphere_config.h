@@ -53,6 +53,7 @@
 #include "applets/EnigmaJr.h"
 //#include "applets/EnsOscKey.h"
 #include "applets/EnvFollow.h"
+#include "applets/EuclidO.h"
 #include "applets/EuclidX.h"
 #include "applets/GameOfLife.h"
 #include "applets/GateDelay.h"
@@ -171,6 +172,7 @@ AppletRegistry reg{
     DeclareApplet<EbbAndLfo>{7, 0x01},
     DeclareApplet<EnigmaJr>{45, 0x02},
     DeclareApplet<EnvFollow>{42, 0x11},
+    DeclareApplet<EuclidO>{89, 0x02},
     DeclareApplet<EuclidX>{15, 0x02},
     DeclareApplet<GameOfLife>{22, 0x01},
     DeclareApplet<GateDelay>{29, 0x04},
