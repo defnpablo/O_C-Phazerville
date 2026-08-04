@@ -13,6 +13,7 @@
 // * Category filtering is deprecated at 1.8, but I'm leaving the per-applet categorization
 // alone to avoid breaking forked codebases by other developers.
 
+#include "applets/TwoBar.h"
 #include "applets/ADSREG.h"
 #include "applets/ADEG.h"
 #include "applets/ASR.h"
@@ -138,6 +139,7 @@ private:
 };
 
 AppletRegistry reg{
+    DeclareApplet<TwoBar>{90, 0x02},
     DeclareApplet<ADSREG>{8, 0x01},
     DeclareApplet<ADEG>{34, 0x01},
     DeclareApplet<ASR>{47, 0x09},

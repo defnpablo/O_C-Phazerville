@@ -171,7 +171,8 @@ void setup() {
   GRAPHICS_END_FRAME();
 
   OC::ui.Init();
-  OC::ui.configure_encoders(OC::calibration_data.encoder_config());
+  // After Later 1U has both encoder phases wired in reverse vs standard O&C hardware.
+  OC::ui.configure_encoders(OC::ENCODER_CONFIG_R_REVERSED);
 
   SERIAL_PRINTLN("* CORE ISR @%luus", OC_CORE_TIMER_RATE);
   CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
