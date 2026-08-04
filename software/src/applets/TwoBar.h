@@ -6,9 +6,12 @@
 class TwoBar : public HemisphereApplet {
 public:
   // Timing constants
-  static constexpr uint16_t PPQN = 960;
-  static constexpr uint16_t LOOP_TICKS = 7680; // 2 bars at 960 PPQN (4/4)
-  static constexpr uint16_t TICKS_PER_PULSE = 240; // assumes 16th-note external clock
+  static constexpr uint16_t PPQN            = 960;
+  static constexpr uint16_t LOOP_TICKS       = 7680;
+  static constexpr uint16_t TICKS_PER_PULSE  = 240;  // 16th-note external clock
+  static constexpr float    CV_RANGE_VOLTS   = 5.0f; // change to 10.0f for 10V hardware
+  // Flip to true if hardware has an inverting ADC input (0V → In()=MAX).
+  static constexpr bool     CV_INVERT        = false;
 
   const char* applet_name() override {
     return "2Bar";
@@ -46,34 +49,26 @@ public:
       return;
     }
 
-    // Step 8: CV1 selects clip. Changed() gate prevents constant override.
-    // last_cv_clip_=255 sentinel means the first Changed() (ADC settling on
-    // startup) only sets the baseline and never overrides the encoder default.
-    if (Changed(0)) {
-      int cv_idx = constrain(
-        Proportion(In(0), HEMISPHERE_MAX_INPUT_CV, (int)two_bar::ClipLibraryCount - 1),
-        0, (int)two_bar::ClipLibraryCount - 1);
-      if (last_cv_clip_ == 255) {
-        last_cv_clip_ = (uint8_t)cv_idx; // first sample: baseline only
-      } else if ((uint8_t)cv_idx != last_cv_clip_) {
-        last_cv_clip_ = (uint8_t)cv_idx;
-        SelectClip((uint8_t)cv_idx);
-      }
-    }
+    if (Changed(0)) UpdateClipFromCV();
 
     // Step 5: Clock sync — ClockCycleTicks(0) tracks measured pulse interval,
     // so the accumulator naturally follows tempo changes without quantization.
+    if (Clock(0)) last_clock_sys_tick_ = OC::CORE::ticks;
+
     uint32_t cycle = ClockCycleTicks(0);
-    if (cycle > 0) {
-      // Advance Q16 accumulator: musical ticks per system tick = TICKS_PER_PULSE / cycle
+    // Stop advancing when no pulse has arrived for more than 2 cycle lengths.
+    if (cycle > 0 && (OC::CORE::ticks - last_clock_sys_tick_) < 2 * cycle) {
       tick_accum_ += ((uint32_t)TICKS_PER_PULSE << 16) / cycle;
       uint16_t advance_by = (uint16_t)(tick_accum_ >> 16);
       if (advance_by > 0) {
         tick_accum_ &= 0xFFFF;
-        Advance(advance_by);
+        Advance(advance_by, cycle);
       }
     }
-    GateOut(0, gate_state_);
+    // DEBUG: direct DAC write with override — bypasses slew/target pipeline.
+    // If display circle blinks but this still stays stuck, output path itself is broken.
+    HS::frame.Out((DAC_CHANNEL)io_offset,       gate_state_ ? HEMISPHERE_MAX_CV : 0, true);
+    HS::frame.Out((DAC_CHANNEL)(io_offset + 1), gate_state_ ? HEMISPHERE_MAX_CV : 0, true);
   }
 
   void View() override {
@@ -135,14 +130,30 @@ private:
   uint8_t  clip_idx_     = 0;   // index into ClipLibrary
   uint8_t  last_cv_clip_ = 255; // 255 = sentinel (unsampled)
 
-  uint32_t mono_tick_    = 0; // monotonically increasing musical tick counter
+  uint32_t last_clock_sys_tick_ = 0;
+  uint32_t mono_tick_    = 0;
   uint32_t gate_off_mono_ = 0; // mono_tick_ value at which the gate turns off
   uint32_t tick_accum_   = 0; // Q16 fractional tick accumulator
   uint16_t event_idx_    = 0; // index of next event to check in active clip
   bool     gate_state_   = false;
 
-  // Step 6: switch to a new clip at the current musical position.
-  // Keeps mono_tick_ intact so playback continues without a restart.
+  // CV input range scaled to CV_RANGE_VOLTS so the full voltage span covers all clips.
+  // First call after start sets the baseline without selecting (startup settle guard).
+  void UpdateClipFromCV() {
+    int cv_max = (int)(CV_RANGE_VOLTS / 5.0f * HEMISPHERE_MAX_INPUT_CV);
+    int cv_in  = CV_INVERT ? cv_max - constrain(In(0), 0, cv_max) : constrain(In(0), 0, cv_max);
+    int cv_idx = constrain(
+      Proportion(cv_in, cv_max, (int)two_bar::ClipLibraryCount - 1),
+      0, (int)two_bar::ClipLibraryCount - 1);
+    if (last_cv_clip_ == 255) {
+      last_cv_clip_ = (uint8_t)cv_idx;
+    } else if ((uint8_t)cv_idx != last_cv_clip_) {
+      last_cv_clip_ = (uint8_t)cv_idx;
+      SelectClip((uint8_t)cv_idx);
+    }
+  }
+
+  // Switch to a new clip at the current musical position without restarting.
   void SelectClip(uint8_t idx) {
     clip_idx_   = idx;
     active_clip_ = &two_bar::ClipLibrary[idx];
@@ -159,7 +170,7 @@ private:
   }
 
   // Advance the internal timeline by n musical ticks, firing gate on/off as needed.
-  void Advance(uint16_t n) {
+  void Advance(uint16_t n, uint32_t cycle) {
     const two_bar::ClipDefinition& clip = *active_clip_;
 
     for (uint16_t i = 0; i < n; i++) {
@@ -167,16 +178,13 @@ private:
       uint16_t pos = (uint16_t)(mono_tick_ % LOOP_TICKS);
 
       if (pos == 0) {
-        // Loop wrapped: restart event scan from the beginning
         event_idx_ = 0;
       }
 
-      // Turn gate off when its duration has elapsed
       if (gate_state_ && mono_tick_ >= gate_off_mono_) {
         gate_state_ = false;
       }
 
-      // Turn gate on for every event whose startTick we have reached or passed
       while (event_idx_ < clip.eventCount &&
              clip.events[event_idx_].startTick <= pos) {
         gate_state_    = true;
