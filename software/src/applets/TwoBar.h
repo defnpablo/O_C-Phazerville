@@ -10,8 +10,6 @@ public:
   static constexpr uint16_t LOOP_TICKS       = 7680;
   static constexpr uint16_t TICKS_PER_PULSE  = 240;  // 16th-note external clock
   static constexpr float    CV_RANGE_VOLTS   = 5.0f; // change to 10.0f for 10V hardware
-  // Flip to true if hardware has an inverting ADC input (0V → In()=MAX).
-  static constexpr bool     CV_INVERT        = false;
 
   const char* applet_name() override {
     return "2Bar";
@@ -62,13 +60,10 @@ public:
       uint16_t advance_by = (uint16_t)(tick_accum_ >> 16);
       if (advance_by > 0) {
         tick_accum_ &= 0xFFFF;
-        Advance(advance_by, cycle);
+        Advance(advance_by);
       }
     }
-    // DEBUG: direct DAC write with override — bypasses slew/target pipeline.
-    // If display circle blinks but this still stays stuck, output path itself is broken.
-    HS::frame.Out((DAC_CHANNEL)io_offset,       gate_state_ ? HEMISPHERE_MAX_CV : 0, true);
-    HS::frame.Out((DAC_CHANNEL)(io_offset + 1), gate_state_ ? HEMISPHERE_MAX_CV : 0, true);
+    GateOut(0, gate_state_);
   }
 
   void View() override {
@@ -141,9 +136,8 @@ private:
   // First call after start sets the baseline without selecting (startup settle guard).
   void UpdateClipFromCV() {
     int cv_max = (int)(CV_RANGE_VOLTS / 5.0f * HEMISPHERE_MAX_INPUT_CV);
-    int cv_in  = CV_INVERT ? cv_max - constrain(In(0), 0, cv_max) : constrain(In(0), 0, cv_max);
     int cv_idx = constrain(
-      Proportion(cv_in, cv_max, (int)two_bar::ClipLibraryCount - 1),
+      Proportion(In(0), cv_max, (int)two_bar::ClipLibraryCount - 1),
       0, (int)two_bar::ClipLibraryCount - 1);
     if (last_cv_clip_ == 255) {
       last_cv_clip_ = (uint8_t)cv_idx;
@@ -170,7 +164,7 @@ private:
   }
 
   // Advance the internal timeline by n musical ticks, firing gate on/off as needed.
-  void Advance(uint16_t n, uint32_t cycle) {
+  void Advance(uint16_t n) {
     const two_bar::ClipDefinition& clip = *active_clip_;
 
     for (uint16_t i = 0; i < n; i++) {
