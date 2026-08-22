@@ -11,6 +11,17 @@ public:
   static constexpr uint16_t TICKS_PER_PULSE  = 240;  // 16th-note external clock
   static constexpr float    CV_RANGE_VOLTS   = 5.0f; // change to 10.0f for 10V hardware
 
+  // Piano-roll grid constants (one bar per row, 32nd-note cells)
+  static constexpr uint16_t BAR_TICKS       = 3840;
+  static constexpr uint16_t TICKS_PER_CELL  = 120;  // 32nd note
+  static constexpr int      GRID_COLS       = 32;   // cells per bar
+  static constexpr int      GRID_COL_W      = 2;    // pixels per cell
+  static constexpr int      GRID_W          = GRID_COLS * GRID_COL_W; // = 64
+  static constexpr int      GRID_BAR1_Y     = 34;   // row bottom stays at y=43
+  static constexpr int      GRID_BAR2_Y     = 54;   // row bottom stays at y=63
+  static constexpr int      GRID_ROW_H      = 10;
+  static constexpr int      GRID_NOTE_H     = 10;
+
   const char* applet_name() override {
     return "2Bar";
   }
@@ -90,7 +101,7 @@ public:
       gfxPrint(8, 15, (int)((selecting_ ? pending_clip_ : clip_idx_) + 1));
     }
 
-    // Gate indicator: hollow circle = off, solid square-in-circle = on
+    // Gate indicator: hollow square = off, filled square = on
     const int sx = 53, sy = 15, ss = 9;
     gfxLine(sx,      sy,      sx+ss-1, sy);
     gfxLine(sx,      sy+ss-1, sx+ss-1, sy+ss-1);
@@ -98,15 +109,8 @@ public:
     gfxLine(sx+ss-1, sy,      sx+ss-1, sy+ss-1);
     if (gate_state_) { gfxRect(sx+1, sy+1, ss-2, ss-2); }
 
-    // Row 2: timeline bar with vertical playhead
-    const int bar_y  = 45;
-    const int bar_x0 = 1;
-    const int bar_x1 = 60;
-    gfxLine(bar_x0, bar_y, bar_x1, bar_y);
-
-    uint16_t pos    = (uint16_t)(mono_tick_ % LOOP_TICKS);
-    int      head_x = bar_x0 + (int)((uint32_t)pos * (bar_x1 - bar_x0) / LOOP_TICKS);
-    gfxLine(head_x, bar_y - 4, head_x, bar_y + 4);
+    DrawClipGrid();
+    DrawPlayhead();
   }
 
   uint64_t OnDataRequest() override {
@@ -241,6 +245,44 @@ private:
       }
       event_idx_++;
     }
+  }
+
+  // Piano-roll of the active clip: bar 1 on top row, bar 2 on bottom.
+  // Each cell is one 32nd-note (2 px wide). Notes with off-grid startTicks
+  // (~0.4% of the library) round to the nearest 32nd.
+  void DrawClipGrid() {
+    const two_bar::ClipDefinition& clip = *active_clip_;
+    for (uint16_t i = 0; i < clip.eventCount; i++) {
+      uint16_t st  = clip.events[i].startTick;
+      uint16_t dur = clip.events[i].durationTicks;
+      uint8_t  bar = (uint8_t)(st / BAR_TICKS);
+      if (bar > 1) continue;
+      uint16_t pos_in_bar = (uint16_t)(st - (uint32_t)bar * BAR_TICKS);
+      int col = (pos_in_bar + TICKS_PER_CELL / 2) / TICKS_PER_CELL;
+      if (col >= GRID_COLS) col = GRID_COLS - 1;
+      int len = (dur + TICKS_PER_CELL - 1) / TICKS_PER_CELL;
+      if (len < 1) len = 1;
+      if (col + len > GRID_COLS) len = GRID_COLS - col;
+      int y = (bar == 0) ? GRID_BAR1_Y : GRID_BAR2_Y;
+      int x = col * GRID_COL_W;
+      int w = len * GRID_COL_W - 1; // 1 px right-edge gap between consecutive notes
+      if (w < 1) w = 1;
+      gfxRect(x, y, w, GRID_NOTE_H);
+    }
+  }
+
+  // Small downward-pointing triangle above the active bar row marks the playhead.
+  void DrawPlayhead() {
+    uint16_t pos        = (uint16_t)(mono_tick_ % LOOP_TICKS);
+    uint8_t  bar        = (uint8_t)(pos / BAR_TICKS);
+    uint16_t pos_in_bar = (uint16_t)(pos - (uint32_t)bar * BAR_TICKS);
+    int head_x = (int)((uint32_t)pos_in_bar * GRID_W / BAR_TICKS);
+    if (head_x >= GRID_W) head_x = GRID_W - 1;
+    int y = (bar == 0) ? GRID_BAR1_Y : GRID_BAR2_Y;
+    // 5x3 triangle whose tip pixel sits directly against the row top.
+    gfxLine(head_x - 2, y - 3, head_x + 2, y - 3);
+    gfxLine(head_x - 1, y - 2, head_x + 1, y - 2);
+    gfxPixel(head_x, y - 1);
   }
 };
 
