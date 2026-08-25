@@ -250,8 +250,10 @@ private:
   // Piano-roll of the active clip: bar 1 on top row, bar 2 on bottom.
   // Each cell is one 32nd-note (2 px wide). Notes with off-grid startTicks
   // (~0.4% of the library) round to the nearest 32nd.
+  // While selecting_ is true, previews the pending clip instead of the running one.
   void DrawClipGrid() {
-    const two_bar::ClipDefinition& clip = *active_clip_;
+    const two_bar::ClipDefinition& clip =
+        selecting_ ? two_bar::ClipLibrary[pending_clip_] : *active_clip_;
     for (uint16_t i = 0; i < clip.eventCount; i++) {
       uint16_t st  = clip.events[i].startTick;
       uint16_t dur = clip.events[i].durationTicks;
